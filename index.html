@@ -936,6 +936,27 @@
   ===================================================================== */
   var calState={year:new Date().getFullYear(), month:new Date().getMonth()};
   var selectedDayStr=todayStr();
+  // ウィンドウの大きさを変えたときにページが読み直されても、選択中の日付を保つ（同じ日のうちだけ）
+  try{
+    var savedDay=JSON.parse(sessionStorage.getItem(LS_PREFIX+"selectedDay")||"null");
+    if(savedDay && savedDay.on===todayStr()){
+      selectedDayStr=savedDay.day;
+      var savedDate=new Date(savedDay.day+"T00:00:00");
+      calState={year:savedDate.getFullYear(), month:savedDate.getMonth()};
+    }
+  }catch(e){}
+  // PCの小窓は開くときのアドレス（#compact=日付）で選択中の日付を受け取る
+  function setDayFromHash(){
+    var m=location.hash.match(/^#compact=(\d{4}-\d{2}-\d{2})$/);
+    if(!m) return false;
+    selectedDayStr=m[1];
+    var hashDate=new Date(m[1]+"T00:00:00");
+    calState={year:hashDate.getFullYear(), month:hashDate.getMonth()};
+    return true;
+  }
+  setDayFromHash();
+  // 小窓が開いたままでも、元の画面でコンパクトを押し直せば日付を更新する
+  window.addEventListener("hashchange", function(){ if(setDayFromHash()) renderDayPanel(); });
 
   function sameYMD(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
   function nthMondayOfMonth(year, month, n){
@@ -1069,14 +1090,20 @@
   }
 
   // 右側パネル: 週間カレンダ → 今日の予定(時間軸) → この日が期限のタスク
+  // 週間カレンダと期限タスクは選択中の日付。時間軸の予定はコンパクトのときだけ今日に固定する
+  function timelineDay(){
+    return document.documentElement.classList.contains("compact") ? todayStr() : selectedDayStr;
+  }
   function renderDayPanel(){
+    try{ sessionStorage.setItem(LS_PREFIX+"selectedDay", JSON.stringify({day:selectedDayStr, on:todayStr()})); }catch(e){}
     renderWeek();
-    var d=new Date(selectedDayStr+"T00:00:00");
-    var isToday=selectedDayStr===todayStr();
+    var tlDay=timelineDay();
+    var d=new Date(tlDay+"T00:00:00");
+    var isToday=tlDay===todayStr();
     document.getElementById("dayTitle").textContent=isToday ? "📌 今日の予定" : "📌 "+(d.getMonth()+1)+"/"+d.getDate()+"("+DOW_NAMES[d.getDay()]+")の予定";
     var list=document.getElementById("dayList");
     clearChildren(list);
-    var evs=eventsByDate[selectedDayStr]||[];
+    var evs=eventsByDate[tlDay]||[];
     document.getElementById("daySub").textContent=evs.length ? evs.length+"件" : "";
 
     if(!store.schedule){
@@ -1085,7 +1112,7 @@
     }else if(!evs.length){
       list.appendChild(el("div","empty","予定はありません"));
     }else{
-      renderTimeline(list, selectedDayStr, evs);
+      renderTimeline(list, tlDay, evs);
     }
 
     var due=document.getElementById("dueTasks");
@@ -1100,7 +1127,9 @@
   var SCHED_DOT={"sched-red":"#ff4d6d","sched-cyan":"#2fe4ff","sched-yellow":"#ffd84d","sched-darkgray":"#7a8a99",
                  "sched-green":"#4cd964","sched-purple":"#b07dff","sched-orange":"#ff9f43"};
 
-  // 選択日を含む週（日曜はじまり）の7日＋その月のミニカレンダを2列で並べる
+  // 選択日を含む週（日曜はじまり）の7日＋その月のミニカレンダを2列で並べる。
+  // 左列は上から 日・月・火・土、右列は 水・木・金・ミニカレンダ（グリッドは行ごとに埋まるので左右交互に置く）
+  var WEEK_CELL_ORDER=[0,3,1,4,2,5,6];
   function renderWeek(){
     var grid=document.getElementById("weekGrid");
     clearChildren(grid);
@@ -1109,8 +1138,8 @@
     var end=new Date(start); end.setDate(start.getDate()+6);
     document.getElementById("weekSub").textContent=(start.getMonth()+1)+"/"+start.getDate()+" 〜 "+(end.getMonth()+1)+"/"+end.getDate();
     var todayS=todayStr();
-    for(var i=0;i<7;i++){
-      var d=new Date(start); d.setDate(start.getDate()+i);
+    WEEK_CELL_ORDER.forEach(function(offset){
+      var d=new Date(start); d.setDate(start.getDate()+offset);
       var ds=fmtDate(d);
       var cell=el("div","wk-cell "+dayClasses(d, ds).join(" "));
       if(ds===todayS) cell.classList.add("today");
@@ -1132,9 +1161,9 @@
         cell.appendChild(row);
       });
       if(evs.length>limit) cell.appendChild(el("div","wk-more","+"+(evs.length-limit)+"件"));
-      cell.addEventListener("click", (function(ds){ return function(){ selectDay(ds); }; })(ds));
+      cell.addEventListener("click", function(){ selectDay(ds); });
       grid.appendChild(cell);
-    }
+    });
     grid.appendChild(renderMiniMonth(sel.getFullYear(), sel.getMonth()));
   }
 
@@ -1253,7 +1282,7 @@
   // PC版と同じ判定: 開始20分前=緑(upcoming) > 次の予定=黄(next) > 時間中=赤(ongoing) > 終了=淡色(done)
   function updateTodayListRowStates(){
     var rows=document.querySelectorAll("#dayList .day-event");
-    var isToday=(selectedDayStr===todayStr());
+    var isToday=(timelineDay()===todayStr());
     var now=new Date();
     var nextRow=null, nextStartMs=Infinity;
     if(isToday){
@@ -2007,7 +2036,7 @@
      COMPACT MODE: 今日の予定だけ。フローティングウィンドウ/分割画面で小さくすると自動で切替。
      PCのChromeではボタンで縦長の小窓（#compact）を開く
   ===================================================================== */
-  var IS_POPUP=location.hash==="#compact";
+  var IS_POPUP=/^#compact/.test(location.hash);
   var compactManual=IS_POPUP || lsGet(LS_PREFIX+"compact")==="1";
   var compactForcedFull=false; // 小さいウィンドウで「全体表示」を選んだとき
   // タブレット（タッチ操作）では小窓を開けないので、ページ内の切替にする
@@ -2025,18 +2054,14 @@
     btn.title=on ? "全体表示に戻す" : "コンパクト表示（今日の予定だけ）";
     btn.firstChild.textContent=on ? "⤢" : "▭";
     btn.querySelector(".lbl").textContent=on ? " 全体" : " コンパクト";
-    if(on && !was){
-      selectedDayStr=todayStr();
-      var d=new Date(); calState={year:d.getFullYear(), month:d.getMonth()};
-      renderDayPanel();
-    }
+    if(on && !was) renderDayPanel(); // 選択中の日付はそのまま引き継ぐ
     if(!on && was) showView(currentView);
     else refreshMarquees(true);
   }
   document.getElementById("compactBtn").addEventListener("click", function(){
     if(IS_POPUP){ window.close(); return; } // 小窓の「全体」= 小窓を閉じて元の画面へ
     if(!isCompact() && isDesktop()){
-      var w=window.open(location.href.split("#")[0]+"#compact", "skbtCompact", "popup=yes,width=420,height=760");
+      var w=window.open(location.href.split("#")[0]+"#compact="+selectedDayStr, "skbtCompact", "popup=yes,width=420,height=760");
       if(w){ w.focus(); return; }
       // ポップアップがブロックされたときはページ内で切り替える
     }
