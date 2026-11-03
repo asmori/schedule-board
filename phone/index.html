@@ -89,6 +89,12 @@
   .fs-bar .hbtn svg{width:18px;height:18px;}
   .fs-title{font-size:15px;font-weight:600;cursor:pointer;padding:0 6px;white-space:nowrap;}
   .fs-bar .spacer{flex:1;}
+  .fs-axis{display:none;align-items:center;gap:2px;}
+  html.fsx .fs-axis{display:flex;}
+  .fs-axis .lbl{font-size:12px;opacity:0.85;padding:0 1px 0 3px;}
+  .fs-bar .fs-axis .hbtn{width:28px;min-width:28px;font-size:17px;font-weight:700;line-height:1;}
+  html.fsx .fs-title{font-size:13.5px;padding:0 2px;}
+  html.fsx .fs-bar .hbtn.nav{width:26px;min-width:26px;}
   html[data-layout="week"] #fsExpand{display:none;}
   /* 全画面拡張: カレンダを縦横とも約1.6倍にして、上下左右にスクロール */
   html.fsx #viewCal1,html.fsx #viewCal2{overflow:auto;}
@@ -147,7 +153,8 @@
   .cal-wrap{flex-shrink:0;padding:6px 6px 4px;touch-action:pan-y;}
   .month-label{font-size:13px;font-weight:600;color:var(--cyan-soft);padding:0 2px 3px;}
   .cal-dow-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-bottom:3px;}
-  .cal-dow{text-align:center;font-size:11.5px;color:var(--text-dim);}
+  /* --fz: 全画面拡張の倍率。マスと一緒に文字も大きくする（通常は1） */
+  .cal-dow{text-align:center;font-size:calc(11.5px * var(--fz,1));color:var(--text-dim);}
   .cal-dow.sun{color:var(--sun-fg);} .cal-dow.sat{color:var(--sat-fg);}
   .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;}
   .cal-cell{height:var(--cell-h,56px);min-width:0;background:var(--cell-grad);user-select:none;-webkit-user-select:none;
@@ -157,11 +164,11 @@
   .cal-cell.other-month{opacity:0.32;}
   .cal-cell.today{border-color:var(--cyan);box-shadow:0 0 8px rgba(var(--accent-rgb),0.45), inset 0 0 6px rgba(var(--accent-rgb),0.15);}
   .cal-cell.selected{border-color:var(--amber);box-shadow:0 0 0 2px rgba(255,180,84,0.6);}
-  .cal-date{font-size:12px;font-weight:600;line-height:1.15;padding-left:1px;flex-shrink:0;}
+  .cal-date{font-size:calc(12px * var(--fz,1));font-weight:600;line-height:1.15;padding-left:1px;flex-shrink:0;}
   .cal-cell.today .cal-date{color:var(--cyan-soft);}
   .cal-cell.sun .cal-date,.cal-cell.kyu .cal-date,.cal-cell.jph .cal-date{color:var(--sun-fg);}
   .cal-cell.sat .cal-date{color:var(--sat-fg);}
-  .cal-chip,.cal-ev{font-size:9.5px;line-height:1.35;padding:0 2px;border-radius:3px;white-space:nowrap;overflow:hidden;flex-shrink:0;
+  .cal-chip,.cal-ev{font-size:calc(9.5px * var(--fz,1));line-height:1.35;padding:0 2px;border-radius:3px;white-space:nowrap;overflow:hidden;flex-shrink:0;
     background:rgba(var(--accent-rgb),0.14);border-left:2px solid var(--cyan);}
   /* レイアウト1: 予定ごとに「開始時間」1行＋「内容」1行 */
   .cal-ev{line-height:1.2;padding:1px 2px;}
@@ -170,7 +177,7 @@
   .cal-chip.allday,.cal-ev.allday{background:rgba(138,125,255,0.22);border-left-color:var(--violet);}
   .cal-ev.allday .tm{color:var(--violet);}
   .cal-chip.cont,.cal-ev.cont{opacity:0.7;}
-  .cal-more{font-size:9px;color:var(--text-dim);padding-left:2px;line-height:1.2;flex-shrink:0;}
+  .cal-more{font-size:calc(9px * var(--fz,1));color:var(--text-dim);padding-left:2px;line-height:1.2;flex-shrink:0;}
   .sched-red{border-left-color:#ff4d6d !important;background:rgba(255,77,109,0.2) !important;}
   .sched-cyan{border-left-color:#2fe4ff !important;background:rgba(47,228,255,0.2) !important;}
   .sched-yellow{border-left-color:#ffd84d !important;background:rgba(255,216,77,0.18) !important;}
@@ -639,6 +646,9 @@
     <span class="fs-title" id="fsTitle"></span>
     <button class="hbtn nav" id="fsNext">›</button>
     <span class="spacer"></span>
+    <!-- 全画面拡張のときだけ: 縦だけ・横だけ広げる／狭める -->
+    <span class="fs-axis"><span class="lbl">縦</span><button class="hbtn" data-axis="y" data-d="-1" title="縦を狭める">−</button><button class="hbtn" data-axis="y" data-d="1" title="縦を広げる">＋</button></span>
+    <span class="fs-axis"><span class="lbl">横</span><button class="hbtn" data-axis="x" data-d="-1" title="横を狭める">−</button><button class="hbtn" data-axis="x" data-d="1" title="横を広げる">＋</button></span>
     <button class="hbtn icon" id="fsExpand" title="全画面拡張"></button>
     <button class="hbtn icon" id="fsExit" title="全画面表示を終了">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
@@ -1386,9 +1396,11 @@
     var todayS=todayStr();
     grid.style.setProperty("--cell-h", cellH+"px");
     // 日付16px + 1件 26px(2行) / 14px(1行)。入りきらないときは「+n」の行(11px)の分をあけて減らす
-    var evH=twoLine ? 26 : 14;
-    var fitAll=Math.max(1, Math.floor((cellH-17)/evH));
-    var fitWithMore=Math.max(0, Math.floor((cellH-17-11)/evH));
+    // 全画面拡張では文字も倍率分大きいので、1件の高さも倍率をかけて数える
+    var fz=fsxFont();
+    var evH=(twoLine ? 26 : 14)*fz;
+    var fitAll=Math.max(1, Math.floor((cellH-17*fz)/evH));
+    var fitWithMore=Math.max(0, Math.floor((cellH-17*fz-11*fz)/evH));
 
     for(var i=0;i<rows*7;i++){
       var cellDate=new Date(gridStart); cellDate.setDate(gridStart.getDate()+i);
@@ -1450,10 +1462,19 @@
   }
   // 全画面拡張の倍率（縦横）。2本指で 1〜3倍の間で変えられ、最後の倍率を覚えておく
   var FSX_MIN=1, FSX_MAX=3;
-  var fsxScale=Math.max(FSX_MIN, Math.min(FSX_MAX, parseFloat(lsGet(LS_PREFIX+"fsxScale"))||1.6));
+  var FSX_INIT=1.6; // 拡張ボタンで入ったときは毎回この倍率（2本指やボタンで変えた倍率は覚えない）
+  var FSX_STEP=0.2; // 縦・横の −／＋ ボタン1回分
+  var fsxSX=FSX_INIT, fsxSY=FSX_INIT; // 横の倍率（幅）・縦の倍率（マスの高さ）
+  function clampFsx(s){ return Math.max(FSX_MIN, Math.min(FSX_MAX, Math.round(s*100)/100)); }
+  // 文字は縦横の小さいほうの倍率に合わせる（マスからはみ出さないように）
+  function fsxFont(){ return fsxOn ? Math.min(fsxSX, fsxSY) : 1; }
   var fsxBaseH={cal1:0, cal2:0}; // 倍率をかける前のマスの高さ（拡大縮小の途中で使う）
   function applyFsxWidth(){
-    ["cal1Wrap","cal2Wrap"].forEach(function(id){ document.getElementById(id).style.width=fsxOn ? (fsxScale*100)+"%" : ""; });
+    ["cal1Wrap","cal2Wrap"].forEach(function(id){
+      var w=document.getElementById(id);
+      w.style.width=fsxOn ? (fsxSX*100)+"%" : "";
+      w.style.setProperty("--fz", fsxFont());
+    });
   }
   document.getElementById("foldDay").addEventListener("click", function(){ foldState.day=!foldState.day; renderCalendar(); });
   document.getElementById("foldTask").addEventListener("click", function(){ foldState.task=!foldState.task; renderCalendar(); });
@@ -1477,7 +1498,7 @@
     h1=Math.max(50, Math.min(260, h1));
     fsxBaseH.cal1=h1;
     applyFsxWidth();
-    if(fsxOn) h1=Math.round(h1*fsxScale);
+    if(fsxOn) h1=Math.round(h1*fsxSY);
     renderMonthGrid(document.getElementById("cal1Grid"), calState.year, calState.month, h1, true);
     updateGlow();
   }
@@ -1494,7 +1515,7 @@
     var h=Math.max(34, Math.min(120, Math.floor((mainH-50)/rows) - 3));
     fsxBaseH.cal2=h;
     applyFsxWidth();
-    if(fsxOn) h=Math.round(h*fsxScale);
+    if(fsxOn) h=Math.round(h*fsxSY);
     renderWeeksGrid(document.getElementById("cal2Grid"), gridStart, rows, h, false,
       function(d){ return d>=a && d<=lastB; });
   }
@@ -2739,7 +2760,21 @@
     var c=document.querySelector(".view.active .cal-cell.selected") || document.querySelector(".view.active .cal-cell.today");
     if(c) c.scrollIntoView({block:"center", inline:"center"});
   }
-  document.getElementById("fsExpand").addEventListener("click", function(){ fsxOn=!fsxOn; applyFsClasses(); });
+  document.getElementById("fsExpand").addEventListener("click", function(){ fsxOn=!fsxOn; fsxSX=fsxSY=FSX_INIT; applyFsClasses(); });
+  // 縦だけ・横だけの −／＋。画面の真ん中に見えている所がずれないようにスクロールも合わせる
+  document.querySelectorAll(".fs-axis .hbtn").forEach(function(b){
+    b.addEventListener("click", function(){
+      var view=document.querySelector(".view.active");
+      var ox=fsxSX, oy=fsxSY;
+      if(b.dataset.axis==="x") fsxSX=clampFsx(fsxSX+FSX_STEP*(+b.dataset.d));
+      else fsxSY=clampFsx(fsxSY+FSX_STEP*(+b.dataset.d));
+      if(ox===fsxSX && oy===fsxSY){ showToast("これ以上は変えられません（1〜3倍）"); return; }
+      var cx=view.scrollLeft+view.clientWidth/2, cy=view.scrollTop+view.clientHeight/2;
+      renderCalendar();
+      view.scrollLeft=cx*fsxSX/ox-view.clientWidth/2;
+      view.scrollTop=cy*fsxSY/oy-view.clientHeight/2;
+    });
+  });
   document.getElementById("fsPrev").addEventListener("click", function(){ shiftNav(-1); });
   document.getElementById("fsNext").addEventListener("click", function(){ shiftNav(1); });
   document.getElementById("fsTitle").addEventListener("click", openYmPicker);
@@ -2753,24 +2788,24 @@
     view.addEventListener("touchstart", function(e){
       if(!fsxOn || e.touches.length!==2) return;
       var r=view.getBoundingClientRect();
-      pinch={d0:touchDist(e.touches), s0:fsxScale, sl:view.scrollLeft, st:view.scrollTop,
+      pinch={d0:touchDist(e.touches), sx0:fsxSX, sy0:fsxSY, sl:view.scrollLeft, st:view.scrollTop,
         mx:(e.touches[0].clientX+e.touches[1].clientX)/2-r.left, my:(e.touches[0].clientY+e.touches[1].clientY)/2-r.top};
     }, {passive:true});
     view.addEventListener("touchmove", function(e){
       if(!pinch || e.touches.length!==2) return;
       e.preventDefault();
-      var s=Math.max(FSX_MIN, Math.min(FSX_MAX, pinch.s0*touchDist(e.touches)/pinch.d0));
-      fsxScale=s;
-      document.getElementById(wrapId).style.width=(s*100)+"%";
-      document.getElementById(gridId).style.setProperty("--cell-h", Math.round(fsxBaseH[layout]*s)+"px");
-      var k=s/pinch.s0;
-      view.scrollLeft=(pinch.sl+pinch.mx)*k-pinch.mx;
-      view.scrollTop=(pinch.st+pinch.my)*k-pinch.my;
+      // 2本指は縦横を同じ割合で拡大縮小（縦横の比はボタンで変えたまま）
+      var r=touchDist(e.touches)/pinch.d0;
+      fsxSX=clampFsx(pinch.sx0*r); fsxSY=clampFsx(pinch.sy0*r);
+      document.getElementById(wrapId).style.width=(fsxSX*100)+"%";
+      document.getElementById(wrapId).style.setProperty("--fz", fsxFont());
+      document.getElementById(gridId).style.setProperty("--cell-h", Math.round(fsxBaseH[layout]*fsxSY)+"px");
+      view.scrollLeft=(pinch.sl+pinch.mx)*fsxSX/pinch.sx0-pinch.mx;
+      view.scrollTop=(pinch.st+pinch.my)*fsxSY/pinch.sy0-pinch.my;
     }, {passive:false});
     function end(e){
       if(!pinch || e.touches.length>=2) return;
       pinch=null;
-      lsSet(LS_PREFIX+"fsxScale", fsxScale.toFixed(2));
       suppressTapUntil=Date.now()+400;
       renderCalendar();
     }
