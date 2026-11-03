@@ -70,8 +70,26 @@
   /* 書き出していない変更があるときは設定ボタンに印 */
   .hbtn .dirty-dot{position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber);display:none;}
   .hbtn.dirty .dirty-dot{display:block;}
-  .hdr-cal,.hdr-task{display:none;align-items:center;gap:5px;flex:1;min-width:0;}
+  .hdr-cal,.hdr-task{display:none;align-items:center;gap:4px;flex:1;min-width:0;}
   html[data-view="cal"] .hdr-cal,html[data-view="task"] .hdr-task{display:flex;}
+  .hdr-cal .hdr-title{flex:0 1 auto;}
+  #calTitle{cursor:pointer;}
+  .hbtn.cal-pick{width:34px;min-width:34px;}
+  .hbtn.cal-pick svg{width:19px;height:19px;}
+  #calToday{padding:0 8px;}
+  [hidden]{display:none !important;}
+
+  /* 開始10分前（緑）・進行中（赤）の予定を流す帯。該当する予定があるときだけ出る */
+  .alert-bar{display:none;position:relative;height:28px;overflow:hidden;flex-shrink:0;background:rgba(6,10,16,0.94);border-bottom:1px solid var(--border);}
+  .alert-bar.show{display:block;}
+  .alert-track{position:absolute;top:0;left:0;white-space:nowrap;font-size:15px;font-weight:800;line-height:28px;
+    animation-name:alertScroll;animation-timing-function:linear;animation-iteration-count:infinite;}
+  .alert-track .a-green{color:#4cd964;animation:alertGlowGreen 1.2s ease-in-out infinite;}
+  .alert-track .a-red{color:#ff4d6d;animation:alertGlowRed 1.2s ease-in-out infinite;}
+  .alert-track .a-sep{display:inline-block;width:3em;}
+  @keyframes alertScroll{ from{transform:translateX(var(--startX,100%));} to{transform:translateX(var(--endX,-100%));} }
+  @keyframes alertGlowGreen{ 0%,100%{ text-shadow:0 0 4px rgba(76,217,100,0.45); opacity:0.8; } 50%{ text-shadow:0 0 18px rgba(76,217,100,1); opacity:1; } }
+  @keyframes alertGlowRed{ 0%,100%{ text-shadow:0 0 4px rgba(255,77,109,0.45); opacity:0.8; } 50%{ text-shadow:0 0 18px rgba(255,77,109,1); opacity:1; } }
 
   .layout-menu{position:absolute;top:calc(100% + 4px);right:56px;display:none;flex-direction:column;min-width:230px;z-index:150;overflow:hidden;
     background:var(--panel-solid);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.5);color:var(--text);}
@@ -118,29 +136,84 @@
   .sched-red{border-left-color:#ff4d6d !important;background:rgba(255,77,109,0.2) !important;}
   .sched-cyan{border-left-color:#2fe4ff !important;background:rgba(47,228,255,0.2) !important;}
   .sched-yellow{border-left-color:#ffd84d !important;background:rgba(255,216,77,0.18) !important;}
-  .sched-darkgray{border-left-color:#7a8a99 !important;background:rgba(122,138,153,0.2) !important;}
+  .sched-darkgray{border-left-color:#a9b5c0 !important;background:rgba(169,181,192,0.2) !important;}
   .sched-green{border-left-color:#4cd964 !important;background:rgba(76,217,100,0.18) !important;}
   .sched-purple{border-left-color:#b07dff !important;background:rgba(176,125,255,0.2) !important;}
   .sched-orange{border-left-color:#ff9f43 !important;background:rgba(255,159,67,0.2) !important;}
+  .cal-date.m1{color:var(--cyan-soft);}
   #viewCal2 .cal-wrap{flex:1;min-height:0;}
-  #viewCal2 .cal-wrap + .cal-wrap{border-top:1px solid var(--border);padding-top:6px;}
 
-  /* レイアウト1 下半分: 選んだ日の予定 → この日が期限のタスク */
+  /* レイアウト1 下半分: 選んだ日の予定 → この日が期限のタスク（それぞれ見出しの右端で内容の表示を切り替え） */
   .day-scroll{flex:1;min-height:0;overflow-y:auto;padding:4px 10px 16px;border-top:1px solid var(--border);}
-  .sec-h{display:flex;align-items:baseline;gap:8px;margin:10px 2px 6px;}
-  .sec-h h2,.sec-h .ttl{margin:0;font-size:15px;font-weight:600;}
-  .sec-h .sub{font-size:12px;color:var(--text-dim);}
+  .day-scroll.folded{padding-bottom:6px;}
+  .sec-h{display:flex;align-items:center;gap:8px;margin:10px 2px 6px;min-height:30px;}
+  .sec-h h2,.sec-h .ttl{margin:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .sec-h .sub{font-size:12px;color:var(--text-dim);white-space:nowrap;}
+  .fold-btn{margin-left:auto;width:36px;height:30px;flex-shrink:0;border-radius:8px;border:1px solid var(--border);background:rgba(var(--accent-rgb),0.08);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+  .fold-btn svg{width:18px;height:18px;transition:transform .2s;}
+  .fold-btn.open svg{transform:rotate(180deg);}
   .day-list,.due-tasks{display:flex;flex-direction:column;gap:6px;}
-  .day-row{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:9px;border:1px solid var(--border);cursor:pointer;
+  .day-row{display:flex;gap:10px;align-items:center;padding:9px 11px;border-radius:9px;border:1px solid var(--border);cursor:pointer;
     border-left:4px solid var(--cyan);background:rgba(var(--accent-rgb),0.08);}
   .day-row.allday{border-left-color:var(--violet);background:rgba(138,125,255,0.12);}
   .day-time{font-size:13px;color:var(--cyan-soft);font-variant-numeric:tabular-nums;width:86px;flex-shrink:0;line-height:1.5;}
   .day-title{font-size:15px;line-height:1.45;word-break:break-word;min-width:0;}
-  /* 今日の予定の状態（PC版と同じ判定）: 次=黄 / 開始20分前=緑 / 時間中=赤 で点滅発光 */
+  /* 1行に入らない内容は後ろを「…」にする */
+  .day-row .day-title{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal;}
+  /* 今日の予定の状態: 次=黄 / 開始10分前=緑 / 進行中=赤 で点滅発光（設定で止められる） */
   .event-next{animation:eventGlowYellow 2.4s ease-in-out infinite;}
   .event-upcoming{animation:eventGlowGreen 2.4s ease-in-out infinite;}
   .event-ongoing{animation:eventGlowRed 2.4s ease-in-out infinite;}
-  .day-row.event-done{opacity:0.45;}
+  .day-row.event-done,.tl-ev.event-done{opacity:0.45;}
+
+  /* ---------- 時間軸（タブレット版右側の「その日の予定」） ---------- */
+  .tl-allday{display:flex;flex-direction:column;gap:4px;margin-bottom:6px;}
+  .tl-box{border:1px solid var(--border);border-radius:8px;background:rgba(0,0,0,0.08);padding:10px 6px 8px 0;}
+  #viewWeek .tl-box{max-height:52vh;overflow-y:auto;}
+  .tl{position:relative;margin-left:40px;cursor:pointer;}
+  .tl-hour{position:absolute;left:-40px;right:0;border-top:1px solid rgba(127,127,127,0.25);font-size:10.5px;color:var(--text-dim);pointer-events:none;}
+  .tl-hour span{position:absolute;left:0;top:-7px;width:36px;text-align:right;padding-right:4px;font-variant-numeric:tabular-nums;}
+  .tl-half{position:absolute;left:0;right:0;border-top:1px dashed rgba(127,127,127,0.13);pointer-events:none;}
+  .tl-ev{display:flex;flex-direction:column;padding:2px 6px;border-radius:6px;border:1px solid var(--border);border-left:3px solid var(--cyan);
+    background:rgba(var(--accent-rgb),0.12);overflow:hidden;font-size:12px;cursor:pointer;min-width:0;}
+  .tl .tl-ev{position:absolute;z-index:1;}
+  .tl-ev.allday{flex-direction:row;align-items:center;gap:8px;padding:6px 8px;border-left-color:var(--violet);background:rgba(138,125,255,0.14);}
+  .tl-ev .tm{font-size:10.5px;color:var(--cyan-soft);font-variant-numeric:tabular-nums;line-height:1.3;flex-shrink:0;}
+  .tl-ev.allday .tm{font-size:12px;color:var(--violet);}
+  .tl-ev .tt{font-size:12px;line-height:1.3;word-break:break-word;}
+  .tl-ev.allday .tt{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tl-ev.short{flex-direction:row;align-items:center;gap:5px;padding:0 6px;white-space:nowrap;}
+  .tl-ev.short .tt{overflow:hidden;text-overflow:ellipsis;}
+  .tl-now{position:absolute;left:-6px;right:0;height:0;border-top:2px solid #ff4d6d;z-index:3;pointer-events:none;}
+  .tl-now::before{content:"";position:absolute;left:-4px;top:-5px;width:8px;height:8px;border-radius:50%;background:#ff4d6d;}
+  .tl-slot{position:absolute;left:2px;right:2px;border:2px dashed var(--cyan);border-radius:6px;background:rgba(var(--accent-rgb),0.12);pointer-events:none;z-index:2;}
+  .tl-hint{font-size:12px;color:var(--text-dim);margin:0 2px 6px;}
+
+  /* ---------- 週間カレンダ（タブレット版と同じ: 左列 日・月・火・土 / 右列 水・木・金・ミニカレンダ） ---------- */
+  .week-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;touch-action:pan-y;}
+  .wk-cell{background:var(--cell-grad);border:1px solid var(--border);border-radius:8px;padding:4px 6px;min-height:62px;min-width:0;cursor:pointer;overflow:hidden;
+    user-select:none;-webkit-user-select:none;}
+  .wk-cell.sat{background:var(--cell-sat);}
+  .wk-cell.sun,.wk-cell.kyu{background:var(--cell-sun);}
+  .wk-cell.today{border-color:var(--cyan);box-shadow:0 0 8px rgba(var(--accent-rgb),0.4);}
+  .wk-cell.selected{border-color:var(--amber);box-shadow:0 0 0 2px rgba(255,180,84,0.6);}
+  .wk-head{display:flex;align-items:baseline;gap:5px;font-size:12px;font-weight:600;margin-bottom:2px;}
+  .wk-head .d{font-size:14px;}
+  .wk-cell.today .wk-head{color:var(--cyan-soft);}
+  .wk-cell.sun .wk-head,.wk-cell.kyu .wk-head,.wk-cell.jph .wk-head{color:var(--sun-fg);}
+  .wk-cell.sat .wk-head{color:var(--sat-fg);}
+  .wk-ev{font-size:11px;line-height:1.45;white-space:nowrap;overflow:hidden;display:flex;gap:4px;align-items:center;border-radius:3px;border:1px solid transparent;}
+  .wk-ev .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--cyan);}
+  .wk-ev .tm{color:var(--text-dim);flex-shrink:0;}
+  .wk-ev .tx{overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .wk-more{font-size:10.5px;color:var(--text-dim);}
+  .wk-mini{cursor:default;}
+  .mini-title{font-size:11px;font-weight:600;text-align:center;margin-bottom:2px;}
+  .mini-grid{display:grid;grid-template-columns:repeat(7,1fr);font-size:9.5px;text-align:center;line-height:1.5;color:var(--text-dim);}
+  .mini-grid .s{color:var(--sun-fg);} .mini-grid .t{color:var(--sat-fg);}
+  .mini-grid .o{opacity:0;}
+  .mini-grid .now{background:var(--cyan);color:#fff;border-radius:50%;font-weight:700;}
   @keyframes eventGlowYellow{
     0%,100%{ box-shadow:0 0 2px rgba(255,216,77,0.25), inset 0 0 0 999px rgba(255,216,77,0.04); border-color:rgba(255,216,77,0.45); }
     50%{ box-shadow:0 0 14px rgba(255,216,77,0.95), inset 0 0 0 999px rgba(255,216,77,0.2); border-color:rgba(255,216,77,1); }
@@ -237,6 +310,30 @@
   .choose-btn{display:flex;align-items:center;gap:12px;width:100%;height:60px;padding:0 16px;margin-top:10px;border-radius:12px;border:1px solid var(--border);
     background:rgba(var(--accent-rgb),0.08);font-size:16px;cursor:pointer;}
   .choose-btn .ico{font-size:24px;}
+  /* 設定のスイッチ・予定の色分けルール */
+  .set-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(127,127,127,0.18);font-size:14px;}
+  .set-row span{flex:1;line-height:1.5;}
+  .switch{width:52px;height:30px;border-radius:15px;border:1px solid var(--border);background:rgba(127,127,127,0.3);position:relative;cursor:pointer;flex-shrink:0;padding:0;}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);transition:left .2s;}
+  .switch.on{background:var(--cyan);border-color:var(--cyan);}
+  .switch.on::after{left:25px;}
+  .rule-row{display:flex;gap:6px;align-items:center;padding:4px 0;}
+  .rule-row .sw{width:8px;height:32px;border-radius:3px;flex-shrink:0;}
+  .rule-row input{flex:1;min-width:0;background:var(--navy-900);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14.5px;padding:7px 8px;font-family:inherit;}
+  .rule-row select{background:var(--navy-900);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;padding:7px 2px;color-scheme:var(--scheme);font-family:inherit;}
+  .rule-row .icon-btn{width:32px;height:32px;flex-shrink:0;}
+  .btn-row{display:flex;gap:8px;margin-top:8px;}
+  .btn-row .hbtn{flex:1;height:42px;}
+  /* 年月を選ぶ */
+  .ym-year{display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 12px;}
+  .ym-year span{font-size:20px;font-weight:600;min-width:96px;text-align:center;}
+  .ym-year .hbtn{width:52px;font-size:20px;}
+  .ym-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .ym-grid button{height:50px;border-radius:10px;border:1px solid var(--border);background:rgba(var(--accent-rgb),0.06);font-size:15.5px;cursor:pointer;}
+  .ym-grid button.cur{border-color:var(--cyan);color:var(--cyan-soft);font-weight:700;}
+  .ym-grid button.sel{background:rgba(var(--accent-rgb),0.3);font-weight:700;}
+  .ym-quick{display:flex;gap:6px;margin-top:12px;}
+  .ym-quick .hbtn{flex:1;height:42px;font-size:13px;padding:0 4px;}
 
   /* ---------- MODAL（PC版と同じレイアウト: スケジュール登録 / タスク詳細） ---------- */
   .btn{background:rgba(var(--accent-rgb),0.06);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:7px;font-size:14.5px;cursor:pointer;font-family:inherit;}
@@ -280,6 +377,18 @@
   .day-add-form input[type=time], .day-edit-form input[type=time]{background:var(--navy-900);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;padding:5px 4px;color-scheme:var(--scheme);}
   .day-add-form input:disabled, .day-edit-form input:disabled{opacity:0.4;}
   .day-add-form label.chk, .day-edit-form label.chk{display:flex;align-items:center;gap:4px;font-size:13.5px;color:var(--text-dim);white-space:nowrap;}
+  /* 1日のスケジュール: 「一覧」と「時間軸」を見出しのアイコンで切り替え。時間軸では登録・変更の欄を上に出す */
+  .modal-head .head-acts{display:flex;gap:2px;align-items:center;}
+  .icon-btn svg{width:20px;height:20px;}
+  #dayTlScroll,#dayEditorSlot{display:none;}
+  .modal.tl-mode{height:88vh;}
+  .modal.tl-mode .modal-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+  .modal.tl-mode #dayEventsList,.modal.tl-mode .modal-body > .day-add-form{display:none;}
+  .modal.tl-mode #dayTlScroll{display:block;flex:1;min-height:0;overflow-y:auto;}
+  .modal.tl-mode #dayEditorSlot{display:block;flex-shrink:0;}
+  .modal.tl-mode #dayEditorSlot:empty{display:none;}
+  #dayEditorSlot .day-add-form,#dayEditorSlot .day-edit-form{margin:0 0 8px;border-color:var(--cyan);}
+  .modal-body > .day-add-form #day-new-cancel{display:none;}
 
   .toast{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + 20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
     background:var(--panel-solid);border:1px solid var(--cyan);color:var(--cyan-soft);padding:10px 16px;border-radius:10px;font-size:13.5px;
@@ -296,7 +405,7 @@
     --text:#22272b; --text-dim:#4a535b;
     --border:rgba(0,40,50,0.27); --panel:#d0d5da; --panel-solid:#dfe3e7;
     --accent-rgb:10,127,145; --panel-rgb:228,232,235; --bg-mid-rgb:186,193,200;
-    --body-bg:#b5bdc3;
+    --body-bg:#cdd3d8;
     --header-bg:linear-gradient(90deg,#00566b 0%,#0b7a82 55%,#1ba08f 100%); --header-fg:#fff;
     --tabbar-bg:#d0d5da;
     --cell-grad:#e4e8eb; --cell-sat:#dbe4f2; --cell-sun:#f1dde1;
@@ -309,7 +418,7 @@
     --text:#252b33; --text-dim:#545d67;
     --border:rgba(30,40,55,0.24); --panel:#cbd0d5; --panel-solid:#dce0e4;
     --accent-rgb:29,185,161; --panel-rgb:226,230,233; --bg-mid-rgb:180,188,195;
-    --body-bg:#aab3ba;
+    --body-bg:#c6cdd3;
     --header-bg:#2b323d; --header-fg:#fff;
     --tabbar-bg:#2b323d;
     --cell-grad:#e2e6e9; --cell-sat:#d9e2ee; --cell-sun:#eedcdf;
@@ -340,7 +449,9 @@
   html[data-theme="accessibility"] .kbadge.workload,html[data-theme="minimal"] .kbadge.workload{color:#a3122a;}
   html[data-theme="accessibility"] .kprog,html[data-theme="minimal"] .kprog{background:rgba(0,0,0,0.1);}
   html[data-theme="accessibility"] .kcard,html[data-theme="minimal"] .kcard,
+  html[data-theme="accessibility"] .wk-cell.today,html[data-theme="minimal"] .wk-cell.today,
   html[data-theme="accessibility"] .cal-cell.today,html[data-theme="minimal"] .cal-cell.today{box-shadow:none;}
+  html[data-theme="accessibility"] .tl-box,html[data-theme="minimal"] .tl-box{background:rgba(255,255,255,0.45);}
   html[data-theme="accessibility"] .kcard.overdue,html[data-theme="minimal"] .kcard.overdue{border-color:rgba(200,16,46,0.6);}
   /* PC版と同じ: ネオン色は明るい背景では読みにくいので濃い色にする */
   html[data-theme="accessibility"] .sched-red,html[data-theme="minimal"] .sched-red{color:#a3122a;background:rgba(200,16,46,0.1) !important;}
@@ -349,9 +460,42 @@
   html[data-theme="accessibility"] .sched-yellow,html[data-theme="minimal"] .sched-yellow{color:#6b5000;background:rgba(255,216,77,0.28) !important;}
   html[data-theme="accessibility"] .sched-green,html[data-theme="minimal"] .sched-green{color:#0a6b3a;background:rgba(76,217,100,0.16) !important;}
   html[data-theme="accessibility"] .sched-purple,html[data-theme="minimal"] .sched-purple{color:#4f35b8;background:rgba(167,139,250,0.2) !important;}
-  html[data-theme="accessibility"] .sched-darkgray,html[data-theme="minimal"] .sched-darkgray{color:#3f464c;background:rgba(90,97,104,0.16) !important;}
+  html[data-theme="accessibility"] .sched-darkgray,html[data-theme="minimal"] .sched-darkgray{color:#4c545b;background:rgba(150,160,170,0.13) !important;}
   html[data-theme="accessibility"] .modal-overlay,html[data-theme="minimal"] .modal-overlay{background:rgba(20,30,40,0.5);}
   html[data-theme="accessibility"] .modal,html[data-theme="minimal"] .modal{box-shadow:0 4px 20px rgba(0,0,0,0.25);}
+
+  /* 2. ダークモード（PC版と同じ: 落ち着いた低輝度の夜向け配色） */
+  html[data-theme="dark"]{
+    --navy-950:#14171c; --navy-900:#1a1e24;
+    --cyan:#7fb7c9; --cyan-soft:#a7cdd9; --cyan-dim:#5a8a99;
+    --violet:#a79bd1; --amber:#d9a463; --mint:#7fbfa0; --danger:#d97a86;
+    --text:#dfe3e8; --text-dim:#8b929c;
+    --border:rgba(140,150,165,0.2); --panel:rgba(32,36,43,0.7); --panel-solid:#1d2128;
+    --accent-rgb:127,183,201; --panel-rgb:26,30,36; --bg-mid-rgb:26,30,36;
+    --body-bg:#14171c;
+    --header-bg:#181b21; --tabbar-bg:#181b21;
+    --cell-grad:linear-gradient(155deg, rgba(42,47,56,0.7) 0%, rgba(26,30,36,0.45) 100%);
+    --cell-sat:linear-gradient(155deg, rgba(90,120,170,0.2) 0%, rgba(26,30,36,0.45) 100%);
+    --cell-sun:linear-gradient(155deg, rgba(170,90,105,0.2) 0%, rgba(26,30,36,0.45) 100%);
+    --sun-fg:#d98a98; --sat-fg:#8fb4d9;
+  }
+  html[data-theme="dark"] .hbtn.primary,html[data-theme="dark"] .cal-cell.today,html[data-theme="dark"] .wk-cell.today{box-shadow:none;}
+
+  /* 4. 色彩と質感（PC版と同じ: 深い紫の地にネオンピンク、マゼンタ→藍→青緑の光と細かいノイズ） */
+  html[data-theme="texture"]{
+    --navy-950:#0d0620; --navy-900:#170a33;
+    --cyan:#ff7edb; --cyan-soft:#ffd1f0; --cyan-dim:#c23fae;
+    --violet:#9d8bff; --amber:#ffb454; --mint:#3dffc0; --danger:#ff5d7a;
+    --text:#f5eefc; --text-dim:#c8b8e8;
+    --border:rgba(255,126,219,0.28); --panel:rgba(23,10,51,0.72); --panel-solid:#1d0f3d;
+    --accent-rgb:255,126,219; --panel-rgb:29,15,61; --bg-mid-rgb:29,15,61;
+    --body-bg:linear-gradient(125deg, rgba(90,20,120,0.6) 0%, rgba(40,20,110,0.55) 30%, rgba(10,60,110,0.45) 60%, rgba(20,90,90,0.4) 100%), #0d0620;
+    --header-bg:rgba(13,6,32,0.88); --tabbar-bg:rgba(13,6,32,0.9);
+    --cell-grad:linear-gradient(155deg, rgba(36,20,72,0.6) 0%, rgba(29,15,61,0.35) 100%);
+  }
+  .noise-overlay{display:none;position:fixed;inset:0;z-index:450;pointer-events:none;opacity:0.06;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  html[data-theme="texture"] .noise-overlay{display:block;}
 
   /* 5. アクティブ① / 6. アクティブ②（タブレット版と同じ） */
   html[data-theme^="active"]{
@@ -403,12 +547,16 @@
 <div class="page-glow"></div>
 <div class="coderain cr1"><pre id="mmRainText1"></pre></div>
 <div class="coderain cr2"><pre id="mmRainText2"></pre></div>
+<div class="noise-overlay"></div>
 <div id="app">
   <header>
     <!-- カレンダ表示のときは月の切替、タスク表示のときは読込状況を出す -->
     <div class="hdr-cal">
       <button class="hbtn nav" id="calPrev">‹</button>
       <div class="hdr-title"><h1 id="calTitle"></h1></div>
+      <button class="hbtn icon cal-pick" id="calPick" title="年月を選ぶ">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      </button>
       <button class="hbtn nav" id="calNext">›</button>
       <button class="hbtn" id="calToday">今日</button>
     </div>
@@ -428,9 +576,10 @@
     <div class="layout-menu" id="layoutMenu">
       <button class="layout-item" data-layout="cal1"><span>📅</span><span>1. カレンダ＋1日の予定・タスク<span class="n">選んだ日の予定とタスクを下に一覧</span></span></button>
       <button class="layout-item" data-layout="cal2"><span>🗓</span><span>2. カレンダ2か月<span class="n">今月と次月を上下に表示</span></span></button>
-      <button class="layout-item" data-layout="board"><span>📋</span><span>3. タスクボード<span class="n">看板ボード形式。長押しでドラッグ移動</span></span></button>
+      <button class="layout-item" data-layout="week"><span>🗒</span><span>3. 週間カレンダ＋その日の予定<span class="n">時間帯をタップして予定を登録・変更</span></span></button>
     </div>
   </header>
+  <div class="alert-bar" id="alertBar"><div class="alert-track" id="alertTrack"></div></div>
 
   <main>
     <!-- ============ レイアウト1: カレンダ＋1日の予定・タスク ============ -->
@@ -440,28 +589,37 @@
         <div class="cal-grid" id="cal1Grid"></div>
       </div>
       <div class="day-scroll" id="dayScroll">
-        <div class="sec-h"><h2 id="dayTitle"></h2><span class="sub" id="daySub"></span></div>
-        <div class="day-list" id="dayList"></div>
-        <div class="sec-h" style="margin-top:14px;"><span class="ttl">✅ この日が期限のタスク</span><span class="sub" id="dueSub"></span></div>
-        <div class="due-tasks" id="dueTasks"></div>
+        <div id="dayInner">
+          <div class="sec-h"><h2 id="dayTitle"></h2><span class="sub" id="daySub"></span>
+            <button class="fold-btn" id="foldDay" title="内容の表示切替"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+          <div class="day-list" id="dayList"></div>
+          <div class="sec-h" style="margin-top:12px;"><span class="ttl">✅ この日が期限のタスク</span><span class="sub" id="dueSub"></span>
+            <button class="fold-btn" id="foldTask" title="内容の表示切替"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
+          <div class="due-tasks" id="dueTasks"></div>
+        </div>
       </div>
     </section>
 
-    <!-- ============ レイアウト2: カレンダ2か月 ============ -->
+    <!-- ============ レイアウト2: カレンダ2か月（今月の最終週と次月の最初の週が同じ週なら1行にまとめる） ============ -->
     <section class="view" id="viewCal2">
-      <div class="cal-wrap" id="cal2WrapA">
-        <div class="month-label" id="cal2LabelA"></div>
+      <div class="cal-wrap" id="cal2Wrap">
+        <div class="month-label" id="cal2Label"></div>
         <div class="cal-dow-row"></div>
-        <div class="cal-grid" id="cal2GridA"></div>
-      </div>
-      <div class="cal-wrap" id="cal2WrapB">
-        <div class="month-label" id="cal2LabelB"></div>
-        <div class="cal-dow-row"></div>
-        <div class="cal-grid" id="cal2GridB"></div>
+        <div class="cal-grid" id="cal2Grid"></div>
       </div>
     </section>
 
-    <!-- ============ レイアウト3: タスクボード ============ -->
+    <!-- ============ レイアウト3: 週間カレンダ＋その日の予定（タブレット版の右側） ============ -->
+    <section class="view" id="viewWeek">
+      <div class="day-scroll" id="weekScroll">
+        <div class="sec-h"><span class="ttl">📅 週間カレンダ</span><span class="sub" id="weekSub"></span></div>
+        <div class="week-grid" id="weekGrid"></div>
+        <div class="sec-h" style="margin-top:12px;"><h2 id="wkDayTitle"></h2><span class="sub" id="wkDaySub"></span></div>
+        <div id="wkDayList"></div>
+      </div>
+    </section>
+
+    <!-- ============ タスクボード（下のタブ「タスク」） ============ -->
     <section class="view" id="viewBoard">
       <div class="stat-row" id="statRow"></div>
       <div class="board" id="board"></div>
@@ -493,11 +651,28 @@
       ※PCで同じファイルを編集したあとにスマホの書き出しで差し替えると、PC側の変更が消えます。差し替える前に、スマホで最新のファイルを読み込んでから編集してください。
     </p>
 
+    <h4>✨ 予定の発光</h4>
+    <div class="set-row"><span>開始10分前と進行中の予定を発光させ、上の帯に文字を流す</span><button class="switch" id="glowSwitch"></button></div>
+
+    <h4>📅 レイアウト1の初期表示</h4>
+    <div class="set-row"><span>「その日の予定」の内容を最初から表示する</span><button class="switch" id="expDaySwitch"></button></div>
+    <div class="set-row"><span>「この日が期限のタスク」の内容を最初から表示する</span><button class="switch" id="expTaskSwitch"></button></div>
+
+    <h4>🖍 予定の色分けルール</h4>
+    <p class="hint" style="margin-top:0;">予定の内容に文言が含まれていると、その色で表示します。上のルールが優先です（例:「事業部会」は「部会」より上に置く）。このスマホだけの設定です。</p>
+    <div id="ruleList"></div>
+    <div class="btn-row">
+      <button class="hbtn" id="ruleAdd">＋ ルールを追加</button>
+      <button class="hbtn" id="ruleReset">初期値に戻す</button>
+    </div>
+
     <h4>🎨 着せ替え</h4>
     <div class="theme-list" id="themeList">
       <button class="theme-item" data-theme="">標準</button>
       <button class="theme-item" data-theme="accessibility">1. アクセシビリティ重視</button>
+      <button class="theme-item" data-theme="dark">2. ダークモード</button>
       <button class="theme-item" data-theme="minimal">3. ミニマリズム</button>
+      <button class="theme-item" data-theme="texture">4. 色彩と質感</button>
       <button class="theme-item" data-theme="active1">5. アクティブ①</button>
       <button class="theme-item" data-theme="active2">6. アクティブ②</button>
     </div>
@@ -531,16 +706,43 @@
   </div>
 </div>
 
-<!-- day detail modal（PC版と同じ） -->
+<!-- 年月を選ぶ -->
+<div class="overlay" id="ymSheet">
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <h3>📅 年月を選ぶ</h3>
+    <div class="ym-year">
+      <button class="hbtn" id="ymPrev">‹</button>
+      <span id="ymYear"></span>
+      <button class="hbtn" id="ymNext">›</button>
+    </div>
+    <div class="ym-grid" id="ymGrid"></div>
+    <div class="ym-quick">
+      <button class="hbtn" data-shift="-12">1年前</button>
+      <button class="hbtn" data-shift="-6">半年前</button>
+      <button class="hbtn" data-shift="0">今月</button>
+      <button class="hbtn" data-shift="6">半年後</button>
+      <button class="hbtn" data-shift="12">1年後</button>
+    </div>
+    <div class="sheet-actions"><button class="hbtn" id="ymClose">閉じる</button></div>
+  </div>
+</div>
+
+<!-- 1日のスケジュール: 一覧（PC版と同じ）／時間軸（タブレット版右側と同じ）を切り替え -->
 <div class="modal-overlay" id="dayModal">
   <div class="modal">
     <div class="modal-head">
       <h2 id="dayModalTitle">この日の予定</h2>
-      <button class="icon-btn" id="dayModalClose">✕</button>
+      <div class="head-acts">
+        <button class="icon-btn" id="dayModeBtn"></button>
+        <button class="icon-btn" id="dayModalClose">✕</button>
+      </div>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" id="dayModalBody">
+      <div id="dayEditorSlot"></div>
       <div class="day-events" id="dayEventsList"></div>
-      <div class="day-add-form">
+      <div id="dayTlScroll"></div>
+      <div class="day-add-form" id="dayAddForm">
         <div class="row">
           <input type="text" id="day-new-title" placeholder="予定を追加...">
         </div>
@@ -550,6 +752,7 @@
           <span style="color:var(--text-dim);font-size:14px;">〜</span>
           <input type="time" id="day-new-end" value="10:00">
           <button class="btn small primary" id="day-new-add" style="margin-left:auto;">＋ 追加</button>
+          <button class="btn small" id="day-new-cancel">ｷｬﾝｾﾙ</button>
         </div>
       </div>
     </div>
@@ -999,18 +1202,26 @@
     return false;
   }
 
+  // 予定の色分けルール（設定で編集できる）。初期値はPC版と同じ判定。上のルールが優先
+  var COLOR_OPTIONS=[["red","赤"],["orange","オレンジ"],["yellow","黄"],["green","緑"],["cyan","水色"],["purple","紫"],["darkgray","グレー"]];
+  var COLOR_HEX={red:"#ff4d6d", orange:"#ff9f43", yellow:"#ffd84d", green:"#4cd964", cyan:"#2fe4ff", purple:"#b07dff", darkgray:"#a9b5c0"};
+  var DEFAULT_COLOR_RULES=[
+    {w:"営業会議",c:"red"},{w:"(営業)",c:"red"},{w:"事業部会",c:"cyan"},{w:"課長会",c:"cyan"},{w:"部会",c:"yellow"},{w:"課会",c:"yellow"},
+    {w:"社内朝会",c:"darkgray"},{w:"社内昼会",c:"darkgray"},{w:"社内夕会",c:"darkgray"},{w:"面談",c:"green"},{w:"検討会",c:"purple"},
+    {w:"[研]",c:"red"},{w:"[移]",c:"orange"},{w:"[会]",c:"red"}
+  ];
+  function defaultColorRules(){ return DEFAULT_COLOR_RULES.map(function(r){ return {w:r.w, c:r.c}; }); }
+  var colorRules=(function(){
+    try{ var r=JSON.parse(lsGet(LS_PREFIX+"colorRules")); if(Array.isArray(r)) return r; }catch(e){}
+    return defaultColorRules();
+  })();
+  function saveColorRules(){ lsSet(LS_PREFIX+"colorRules", JSON.stringify(colorRules)); }
   function scheduleEventColorClass(title){
     title=title||"";
-    if(title.indexOf("営業会議")!==-1) return "sched-red";
-    if(title.indexOf("(営業)")!==-1) return "sched-red";
-    if(title.indexOf("事業部会")!==-1 || title.indexOf("課長会")!==-1) return "sched-cyan";
-    if(title.indexOf("部会")!==-1 || title.indexOf("課会")!==-1) return "sched-yellow";
-    if(title.indexOf("社内朝会")!==-1 || title.indexOf("社内昼会")!==-1 || title.indexOf("社内夕会")!==-1) return "sched-darkgray";
-    if(title.indexOf("面談")!==-1) return "sched-green";
-    if(title.indexOf("検討会")!==-1) return "sched-purple";
-    if(title.indexOf("[研]")!==-1) return "sched-red";
-    if(title.indexOf("[移]")!==-1) return "sched-orange";
-    if(title.indexOf("[会]")!==-1) return "sched-red";
+    for(var i=0;i<colorRules.length;i++){
+      var r=colorRules[i];
+      if(r.w && COLOR_HEX[r.c] && title.indexOf(r.w)!==-1) return "sched-"+r.c;
+    }
     return "";
   }
 
@@ -1044,17 +1255,21 @@
   }
   function fmtMonthKey(d){ return d.getFullYear()+"-"+d.getMonth(); }
 
-  // 1回目のタップで日を選び、同じ日をすぐにもう1回タップ（ダブルタップ）で登録の選択画面を出す
-  var lastTap={d:null, t:0};
+  // シングルタップ: 日を選び、少し待って2回目のタップがなければ「1日のスケジュール」（時間軸）を開く
+  // ダブルタップ: 「スケジュール登録／タスク登録」の選択画面
+  var DOUBLE_TAP_MS=420;
+  var lastTap={d:null, t:0}, tapTimer=null;
   function onCellTap(dStr){
     var now=Date.now();
-    if(lastTap.d===dStr && now-lastTap.t<450){
+    clearTimeout(tapTimer); tapTimer=null;
+    if(lastTap.d===dStr && now-lastTap.t<DOUBLE_TAP_MS){
       lastTap={d:null, t:0};
       openChooser(dStr);
       return;
     }
     lastTap={d:dStr, t:now};
     if(dStr!==selectedDayStr) selectDay(dStr);
+    tapTimer=setTimeout(function(){ tapTimer=null; openDayModal(dStr, "timeline"); }, DOUBLE_TAP_MS);
   }
 
   function rowsOf(year, month){
@@ -1065,12 +1280,13 @@
 
   // twoLine=true (レイアウト1): 予定ごとに「開始時間」1行＋「内容」1行。false (レイアウト2): 内容だけ1行
   function renderMonthGrid(grid, year, month, cellH, twoLine){
+    var gridStart=new Date(year, month, 1-new Date(year, month, 1).getDay());
+    renderWeeksGrid(grid, gridStart, rowsOf(year, month), cellH, twoLine, function(d){ return d.getFullYear()===year && d.getMonth()===month; });
+  }
+  // gridStart（日曜）から rows 週分のマスを描く。inRange が false の日は薄く表示
+  function renderWeeksGrid(grid, gridStart, rows, cellH, twoLine, inRange){
     clearChildren(grid);
-    var firstOfMonth=new Date(year, month, 1);
-    var startOffset=firstOfMonth.getDay();
-    var gridStart=new Date(year, month, 1-startOffset);
     var todayS=todayStr();
-    var rows=rowsOf(year, month);
     grid.style.setProperty("--cell-h", cellH+"px");
     // 日付16px + 1件 26px(2行) / 14px(1行)。入りきらないときは「+n」の行(11px)の分をあけて減らす
     var evH=twoLine ? 26 : 14;
@@ -1081,24 +1297,28 @@
       var cellDate=new Date(gridStart); cellDate.setDate(gridStart.getDate()+i);
       var dStr=fmtDate(cellDate);
       var cell=el("div","cal-cell "+dayClasses(cellDate, dStr).join(" "));
-      if(cellDate.getMonth()!==month) cell.classList.add("other-month");
+      if(!inRange(cellDate)) cell.classList.add("other-month");
       if(dStr===todayS) cell.classList.add("today");
       if(dStr===selectedDayStr) cell.classList.add("selected");
 
-      cell.appendChild(el("div","cal-date",cellDate.getDate()));
+      // 月の1日は「12/1」のように月も出す（2か月表示で月の変わり目がわかるように）
+      var first=cellDate.getDate()===1;
+      cell.appendChild(el("div","cal-date"+(first?" m1":""), first ? (cellDate.getMonth()+1)+"/1" : cellDate.getDate()));
       var dayEvents=eventsByDate[dStr]||[];
       var limit=dayEvents.length>fitAll ? fitWithMore : dayEvents.length;
       dayEvents.slice(0,limit).forEach(function(ev){
         var color=scheduleEventColorClass(ev.title);
         var cls=(ev.allDay?" allday":"")+(ev.isContinuation?" cont":"")+(color?" "+color:"");
+        var box;
         if(twoLine){
-          var box=el("div","cal-ev"+cls);
+          box=el("div","cal-ev"+cls);
           box.appendChild(el("div","tm", ev.allDay ? (ev.isContinuation?"終日(続)":"終日") : ev.time));
           box.appendChild(el("div","tt", ev.title));
-          cell.appendChild(box);
         }else{
-          cell.appendChild(el("div","cal-chip"+cls, ev.title));
+          box=el("div","cal-chip"+cls, ev.title);
         }
+        setGlowData(box, dStr, ev, false);
+        cell.appendChild(box);
       });
       if(dayEvents.length>limit) cell.appendChild(el("div","cal-more","+"+(dayEvents.length-limit)));
 
@@ -1107,27 +1327,52 @@
     }
   }
 
+  // 「その日の予定」「この日が期限のタスク」の内容を表示するか（true=表示）。初期値は設定で決める
+  var expandDayDefault=lsGet(LS_PREFIX+"expDay")==="1";
+  var expandTaskDefault=lsGet(LS_PREFIX+"expTask")==="1";
+  var foldState={day:expandDayDefault, task:expandTaskDefault};
+  function applyFold(){
+    document.getElementById("dayList").hidden=!foldState.day;
+    document.getElementById("dueTasks").hidden=!foldState.task;
+    document.getElementById("foldDay").classList.toggle("open", foldState.day);
+    document.getElementById("foldTask").classList.toggle("open", foldState.task);
+    document.getElementById("dayScroll").classList.toggle("folded", !foldState.day && !foldState.task);
+  }
+  document.getElementById("foldDay").addEventListener("click", function(){ foldState.day=!foldState.day; renderCalendar(); });
+  document.getElementById("foldTask").addEventListener("click", function(){ foldState.task=!foldState.task; renderCalendar(); });
+
   function renderCalendar(){
+    if(currentLayout==="week"){ renderWeekView(); return; }
     document.getElementById("calTitle").textContent=calState.year+"年"+MONTH_NAMES[calState.month];
     var mainH=document.querySelector("main").clientHeight;
     if(currentLayout==="cal2"){
-      var next=new Date(calState.year, calState.month+1, 1);
-      var months=[{y:calState.year, m:calState.month, grid:"cal2GridA", label:"cal2LabelA"},
-                  {y:next.getFullYear(), m:next.getMonth(), grid:"cal2GridB", label:"cal2LabelB"}];
-      months.forEach(function(mo){
-        document.getElementById(mo.label).textContent=mo.y+"年"+MONTH_NAMES[mo.m];
-        var rows=rowsOf(mo.y, mo.m);
-        // 半分の高さから、月の見出し・曜日・余白を引いた分を行で割る
-        var h=Math.floor((mainH/2 - 46)/rows) - 3;
-        renderMonthGrid(document.getElementById(mo.grid), mo.y, mo.m, Math.max(40, Math.min(80, h)), false);
-      });
+      renderTwoMonths(mainH);
+      updateGlow();
       return;
     }
-    // レイアウト1: カレンダが画面の約6割、残りに選んだ日の予定とタスク
-    var rows1=rowsOf(calState.year, calState.month);
-    var h1=Math.floor((mainH*0.62 - 24)/rows1) - 3;
-    renderMonthGrid(document.getElementById("cal1Grid"), calState.year, calState.month, Math.max(50, Math.min(110, h1)), true);
+    // レイアウト1: 内容をどちらも閉じているときは、見出し2行の分だけ残してカレンダを縦いっぱいに伸ばす。
+    // どちらかを開いたら、カレンダは画面の約6割
+    applyFold();
     renderDayPanel();
+    var lowerH=(foldState.day || foldState.task) ? Math.round(mainH*0.38) : document.getElementById("dayInner").offsetHeight+28; // + 見出しの上下の余白・枠の内側の余白
+    var rows1=rowsOf(calState.year, calState.month);
+    var h1=Math.floor((mainH - lowerH - 24)/rows1) - 3;
+    renderMonthGrid(document.getElementById("cal1Grid"), calState.year, calState.month, Math.max(50, Math.min(170, h1)), true);
+    updateGlow();
+  }
+
+  // レイアウト2: 今月と次月を続けて表示。今月の最終週と次月の最初の週が同じ週なら、その週は1行だけ
+  function renderTwoMonths(mainH){
+    var a=new Date(calState.year, calState.month, 1);
+    var b=new Date(calState.year, calState.month+1, 1);
+    var lastB=new Date(calState.year, calState.month+2, 0);
+    var gridStart=new Date(a); gridStart.setDate(1-a.getDay());
+    var gridEnd=new Date(lastB); gridEnd.setDate(lastB.getDate()+(6-lastB.getDay()));
+    var rows=Math.round((gridEnd-gridStart)/86400000+1)/7;
+    document.getElementById("cal2Label").textContent=a.getFullYear()+"年"+MONTH_NAMES[a.getMonth()]+" ・ "+(b.getFullYear()!==a.getFullYear()?b.getFullYear()+"年":"")+MONTH_NAMES[b.getMonth()];
+    var h=Math.floor((mainH-50)/rows) - 3;
+    renderWeeksGrid(document.getElementById("cal2Grid"), gridStart, rows, Math.max(34, Math.min(120, h)), false,
+      function(d){ return d>=a && d<=lastB; });
   }
 
   function renderDayPanel(){
@@ -1150,12 +1395,11 @@
         if(ev.allDay || !ev.time){
           row.appendChild(el("div","day-time", ev.isContinuation?"終日（継続）":"終日"));
         }else{
-          row.dataset.start=ev.time;
-          if(ev.endTime) row.dataset.end=ev.endTime;
           row.appendChild(el("div","day-time", ev.time+"–"+(ev.endTime||"")));
         }
+        setGlowData(row, selectedDayStr, ev, true);
         row.appendChild(el("div","day-title", ev.title));
-        row.addEventListener("click", function(){ openDayModal(selectedDayStr); });
+        row.addEventListener("click", function(){ openDayModal(selectedDayStr, "list"); });
         list.appendChild(row);
       });
     }
@@ -1166,44 +1410,301 @@
     document.getElementById("dueSub").textContent=dueTasks.length ? dueTasks.length+"件" : "";
     if(!dueTasks.length){ var n=el("div","empty","なし"); n.style.padding="6px"; n.style.fontSize="12.5px"; due.appendChild(n); }
     dueTasks.forEach(function(t){ due.appendChild(renderCard(t, false)); });
-    updateTodayListRowStates();
   }
 
-  // PC版と同じ判定: 開始20分前=緑(upcoming) > 次の予定=黄(next) > 時間中=赤(ongoing) > 終了=淡色(done)
-  function updateTodayListRowStates(){
-    var rows=document.querySelectorAll("#dayList .day-row");
-    var isToday=(selectedDayStr===todayStr());
-    var now=new Date();
-    var nextRow=null, nextStartMs=Infinity;
-    if(isToday){
-      rows.forEach(function(row){
-        if(!row.dataset.start) return;
-        var sp=row.dataset.start.split(":");
-        var ms=new Date(now.getFullYear(), now.getMonth(), now.getDate(), +sp[0], +sp[1]).getTime();
-        if(ms>now.getTime() && ms<nextStartMs){ nextStartMs=ms; nextRow=row; }
-      });
-    }
-    rows.forEach(function(row){
-      row.classList.remove("event-upcoming","event-ongoing","event-done","event-next");
-      if(!isToday || !row.dataset.start) return;
-      var sp=row.dataset.start.split(":");
-      var start=new Date(now.getFullYear(), now.getMonth(), now.getDate(), +sp[0], +sp[1]);
-      var end=null;
-      if(row.dataset.end){
-        var ep=row.dataset.end.split(":");
-        end=new Date(now.getFullYear(), now.getMonth(), now.getDate(), +ep[0], +ep[1]);
-      }
-      var diffStartMin=(start.getTime()-now.getTime())/60000;
-      if(diffStartMin>0 && diffStartMin<=20){
-        row.classList.add("event-upcoming");
-      }else if(row===nextRow){
-        row.classList.add("event-next");
-      }else if(now.getTime()>=start.getTime() && (!end || now.getTime()<end.getTime())){
-        row.classList.add("event-ongoing");
-      }else if(end && now.getTime()>=end.getTime()){
-        row.classList.add("event-done");
+  /* =====================================================================
+     予定の発光と流れる文字（タブレット版と同じ色: 次=黄 / 開始10分前=緑 / 進行中=赤）
+     発光させたい要素に data-gday（日付）・data-start・data-end を付けておき、30秒ごとに状態を付け直す
+  ===================================================================== */
+  var GLOW_LEAD_MIN=10;
+  var glowOn=lsGet(LS_PREFIX+"glow")!=="0";
+  // isList=true の要素（予定の一覧・時間軸）は「次の予定=黄」と「終了=淡色」も付ける。カレンダのマスは緑・赤だけ
+  function setGlowData(node, dStr, ev, isList){
+    if(ev.allDay || !ev.time || ev.isContinuation) return;
+    node.dataset.gday=dStr;
+    node.dataset.start=ev.time;
+    if(ev.endTime) node.dataset.end=ev.endTime;
+    if(isList) node.dataset.list="1";
+  }
+  function hmToMs(hm, base){
+    var p=hm.split(":");
+    return new Date(base.getFullYear(), base.getMonth(), base.getDate(), +p[0], +p[1]).getTime();
+  }
+  // "upcoming"=10分以内に開始 / "ongoing"=進行中 / "done"=終了 / ""=それ以外
+  function eventState(startHM, endHM, now){
+    var s=hmToMs(startHM, now), e=endHM ? hmToMs(endHM, now) : null;
+    if(e!=null && e<=s) e=null; // 日をまたぐ予定はこの日の終わりまで進行中
+    var t=now.getTime(), diff=(s-t)/60000;
+    if(diff>0 && diff<=GLOW_LEAD_MIN) return "upcoming";
+    if(t>=s && (e==null || t<e)) return "ongoing";
+    if(e!=null && t>=e) return "done";
+    return "";
+  }
+  function updateGlow(){
+    var now=new Date(), todayS=todayStr(), nextMs=Infinity;
+    (eventsByDate[todayS]||[]).forEach(function(ev){
+      if(ev.allDay || !ev.time || ev.isContinuation) return;
+      var ms=hmToMs(ev.time, now);
+      if(ms>now.getTime() && ms<nextMs) nextMs=ms;
+    });
+    document.querySelectorAll("[data-gday]").forEach(function(node){
+      node.classList.remove("event-upcoming","event-ongoing","event-done","event-next");
+      if(node.dataset.gday!==todayS) return;
+      var st=eventState(node.dataset.start, node.dataset.end, now);
+      if(st==="upcoming" || st==="ongoing"){ if(glowOn) node.classList.add("event-"+st); }
+      else if(node.dataset.list){
+        if(st==="done") node.classList.add("event-done");
+        else if(glowOn && hmToMs(node.dataset.start, now)===nextMs) node.classList.add("event-next");
       }
     });
+    updateAlertBar(now);
+  }
+
+  var alertKey="";
+  function updateAlertBar(now){
+    var bar=document.getElementById("alertBar"), track=document.getElementById("alertTrack");
+    var parts=[];
+    if(glowOn){
+      var up=[], arrived=[];
+      (eventsByDate[todayStr()]||[]).forEach(function(ev){
+        if(ev.allDay || !ev.time || ev.isContinuation) return;
+        var st=eventState(ev.time, ev.endTime, now);
+        if(st==="upcoming") up.push(ev); else if(st==="ongoing") arrived.push(ev);
+      });
+      if(up.length) parts.push({cls:"a-green", text:"⏰ もうすぐ "+up.map(function(ev){ return ev.time+" "+ev.title; }).join(" / ")+" の時間です。"});
+      if(arrived.length) parts.push({cls:"a-red", text:"🔔 進行中: "+arrived.map(function(ev){ return ev.time+"–"+(ev.endTime||"")+" "+ev.title; }).join(" / ")});
+    }
+    var show=parts.length>0;
+    var visChanged=show!==bar.classList.contains("show");
+    bar.classList.toggle("show", show);
+    var key=parts.map(function(p){ return p.cls+p.text; }).join("|");
+    if(key!==alertKey || visChanged){
+      alertKey=key;
+      clearChildren(track);
+      parts.forEach(function(p, i){
+        if(i) track.appendChild(el("span","a-sep"));
+        track.appendChild(el("span",p.cls,p.text));
+      });
+      if(show) startAlertScroll();
+    }
+    // 帯が出たり消えたりすると画面の高さが変わるので、カレンダのマスの高さを計算し直す
+    if(visChanged && (currentLayout==="cal1" || currentLayout==="cal2")) setTimeout(renderCalendar, 0);
+  }
+  // 右から左へ流す。同じ文言のあいだは30秒ごとの更新で流し直さない（長い文が途中で切れないように）
+  function startAlertScroll(){
+    var bar=document.getElementById("alertBar"), track=document.getElementById("alertTrack");
+    track.style.animationName="none";
+    void track.offsetWidth;
+    track.style.animationName="";
+    var cw=bar.clientWidth, tw=track.scrollWidth;
+    track.style.setProperty("--startX", cw+"px");
+    track.style.setProperty("--endX", (-tw)+"px");
+    track.style.animationDuration=Math.max(6, (cw+tw)/90)+"s";
+  }
+
+  /* =====================================================================
+     時間軸（タブレット版右側の「その日の予定」）。終日は上にまとめ、重なる予定は横に並べる
+     opts.full=true: 0〜24時をすべて表示（1日のスケジュール画面）。false: タブレット版と同じく 9〜18時＋予定のある時間
+     空いている時間帯のタップで opts.onSlot(分)、予定のタップで opts.onEvent(予定)
+  ===================================================================== */
+  var TL_PX_PER_HOUR=48;
+  function toMin(t){ var p=t.split(":"); return (+p[0])*60+(+p[1]); }
+  function minToHM(m){ m=Math.max(0, Math.min(23*60+59, m)); return pad(Math.floor(m/60))+":"+pad(m%60); }
+  function buildTimeline(dStr, opts){
+    var evs=eventsByDate[dStr]||[];
+    var wrap=el("div","tl-wrap");
+    var allDay=evs.filter(function(ev){ return ev.allDay || !ev.time; });
+    var timed=evs.filter(function(ev){ return !ev.allDay && ev.time; });
+    if(allDay.length){
+      var top=el("div","tl-allday");
+      allDay.forEach(function(ev){
+        var color=scheduleEventColorClass(ev.title);
+        var row=el("div","tl-ev allday"+(color?" "+color:""));
+        row.appendChild(el("span","tm", ev.isContinuation?"終日（継続）":"終日"));
+        row.appendChild(el("span","tt", ev.title));
+        row.addEventListener("click", function(){ opts.onEvent(ev); });
+        top.appendChild(row);
+      });
+      wrap.appendChild(top);
+    }
+
+    var items=timed.map(function(ev){
+      var s=toMin(ev.time);
+      var e=ev.endTime ? toMin(ev.endTime) : s+30;
+      if(e<=s) e=24*60; // 日をまたぐ予定はこの日の終わりまで
+      return {ev:ev, s:s, e:e};
+    }).sort(function(a,b){ return a.s-b.s || a.e-b.e; });
+    var startH=0, endH=24;
+    if(!opts.full){
+      startH=9; endH=18;
+      if(items.length){
+        startH=Math.min(9, Math.floor(items[0].s/60));
+        endH=Math.min(24, Math.max(18, Math.ceil(Math.max.apply(null, items.map(function(it){ return it.e; }))/60)));
+      }
+    }
+    var px=TL_PX_PER_HOUR/60;
+
+    // 重なりのかたまりごとにレーン（横の列）を割り当てる
+    var cluster=[], clusterEnd=-1;
+    function flush(){
+      var laneEnds=[];
+      cluster.forEach(function(it){
+        var lane=laneEnds.findIndex(function(end){ return end<=it.s; });
+        if(lane===-1){ lane=laneEnds.length; laneEnds.push(it.e); } else laneEnds[lane]=it.e;
+        it.lane=lane;
+      });
+      cluster.forEach(function(it){ it.lanes=laneEnds.length; });
+      cluster=[];
+    }
+    items.forEach(function(it){
+      if(cluster.length && it.s>=clusterEnd) flush();
+      cluster.push(it);
+      clusterEnd=cluster.length===1 ? it.e : Math.max(clusterEnd, it.e);
+    });
+    flush();
+
+    var tl=el("div","tl");
+    tl.style.height=((endH-startH)*TL_PX_PER_HOUR)+"px";
+    tl.dataset.startH=startH;
+    for(var h=startH; h<=endH; h++){
+      var line=el("div","tl-hour");
+      line.style.top=((h-startH)*TL_PX_PER_HOUR)+"px";
+      line.appendChild(el("span",null,h+":00"));
+      tl.appendChild(line);
+      if(h<endH){
+        var half=el("div","tl-half");
+        half.style.top=((h-startH)*TL_PX_PER_HOUR+TL_PX_PER_HOUR/2)+"px";
+        tl.appendChild(half);
+      }
+    }
+    items.forEach(function(it){
+      var ev=it.ev;
+      var color=scheduleEventColorClass(ev.title);
+      // 45分未満の予定は高さが足りないので「時刻 タイトル」を1行で出す
+      var b=el("div","tl-ev"+(color?" "+color:"")+(it.e-it.s<45?" short":""));
+      setGlowData(b, dStr, ev, true);
+      b.style.top=((it.s-startH*60)*px)+"px";
+      b.style.height=Math.max(20, (it.e-it.s)*px-2)+"px";
+      b.style.left="calc("+(it.lane*100/it.lanes)+"% + 2px)";
+      b.style.width="calc("+(100/it.lanes)+"% - 4px)";
+      b.appendChild(el("div","tm", ev.time+"–"+(ev.endTime||"")));
+      b.appendChild(el("div","tt", ev.title));
+      b.addEventListener("click", function(e){ e.stopPropagation(); opts.onEvent(ev); });
+      tl.appendChild(b);
+    });
+    var isToday=dStr===todayStr();
+    if(isToday) tl.appendChild(el("div","tl-now"));
+    // 空いている時間帯のタップ: 30分単位でその時刻から登録
+    tl.addEventListener("click", function(e){
+      if(e.target.closest && e.target.closest(".tl-ev")) return;
+      var y=e.clientY-tl.getBoundingClientRect().top;
+      var min=startH*60+Math.floor(y/px/30)*30;
+      opts.onSlot(Math.max(startH*60, Math.min(endH*60-30, min)));
+    });
+    var box=el("div","tl-box");
+    box.appendChild(tl);
+    wrap.appendChild(box);
+    var now=new Date();
+    var focusMin=isToday ? now.getHours()*60+now.getMinutes()-60 : (items.length ? items[0].s-30 : 8*60);
+    return {node:wrap, tl:tl, focusPx:Math.max(0, (focusMin-startH*60)*px)};
+  }
+  function updateNowLine(){
+    document.querySelectorAll(".tl").forEach(function(tl){
+      var line=tl.querySelector(".tl-now");
+      if(!line) return;
+      var now=new Date();
+      var y=(now.getHours()*60+now.getMinutes()-(+tl.dataset.startH)*60)*TL_PX_PER_HOUR/60;
+      line.style.display=(y<0 || y>tl.clientHeight) ? "none" : "";
+      line.style.top=y+"px";
+    });
+  }
+
+  /* =====================================================================
+     レイアウト3: 週間カレンダ＋その日の予定（タブレット版の右側と同じ）
+  ===================================================================== */
+  // 選択日を含む週（日曜はじまり）の7日＋その月のミニカレンダを2列で並べる。
+  // 左列は上から 日・月・火・土、右列は 水・木・金・ミニカレンダ（グリッドは行ごとに埋まるので左右交互に置く）
+  var WEEK_CELL_ORDER=[0,3,1,4,2,5,6];
+  function renderWeek(){
+    var grid=document.getElementById("weekGrid");
+    clearChildren(grid);
+    var sel=new Date(selectedDayStr+"T00:00:00");
+    var start=new Date(sel); start.setDate(sel.getDate()-sel.getDay());
+    var end=new Date(start); end.setDate(start.getDate()+6);
+    document.getElementById("weekSub").textContent=(start.getMonth()+1)+"/"+start.getDate()+" 〜 "+(end.getMonth()+1)+"/"+end.getDate();
+    var todayS=todayStr();
+    WEEK_CELL_ORDER.forEach(function(offset){
+      var d=new Date(start); d.setDate(start.getDate()+offset);
+      var ds=fmtDate(d);
+      var cell=el("div","wk-cell "+dayClasses(d, ds).join(" "));
+      if(ds===todayS) cell.classList.add("today");
+      if(ds===selectedDayStr) cell.classList.add("selected");
+      var head=el("div","wk-head");
+      head.appendChild(el("span","d",d.getDate()));
+      head.appendChild(el("span",null,DOW_NAMES[d.getDay()]));
+      cell.appendChild(head);
+      var evs=eventsByDate[ds]||[];
+      var limit=evs.length>3 ? 2 : 3;
+      evs.slice(0,limit).forEach(function(ev){
+        var row=el("div","wk-ev");
+        var dot=el("span","dot");
+        var c=COLOR_HEX[scheduleEventColorClass(ev.title).replace("sched-","")];
+        if(c) dot.style.background=c; else if(ev.allDay) dot.style.background="var(--violet)";
+        row.appendChild(dot);
+        if(ev.time) row.appendChild(el("span","tm",ev.time));
+        row.appendChild(el("span","tx",ev.title));
+        setGlowData(row, ds, ev, false);
+        cell.appendChild(row);
+      });
+      if(evs.length>limit) cell.appendChild(el("div","wk-more","+"+(evs.length-limit)+"件"));
+      cell.addEventListener("click", function(){ selectDay(ds); });
+      grid.appendChild(cell);
+    });
+    grid.appendChild(renderMiniMonth(sel.getFullYear(), sel.getMonth()));
+  }
+  function renderMiniMonth(year, month){
+    var cell=el("div","wk-cell wk-mini");
+    cell.appendChild(el("div","mini-title",year+"年"+(month+1)+"月"));
+    var g=el("div","mini-grid");
+    DOW_NAMES.forEach(function(n,i){ g.appendChild(el("span",i===0?"s":(i===6?"t":""),n)); });
+    var first=new Date(year, month, 1).getDay();
+    var days=new Date(year, month+1, 0).getDate();
+    var todayS=todayStr();
+    for(var i=0;i<first;i++) g.appendChild(el("span","o","0"));
+    for(var day=1; day<=days; day++){
+      var d=new Date(year, month, day);
+      var cls=fmtDate(d)===todayS ? "now" : (d.getDay()===0||isJapaneseHoliday(d) ? "s" : (d.getDay()===6 ? "t" : ""));
+      g.appendChild(el("span",cls,day));
+    }
+    cell.appendChild(g);
+    return cell;
+  }
+  function renderWeekView(){
+    var sel=new Date(selectedDayStr+"T00:00:00");
+    calState={year:sel.getFullYear(), month:sel.getMonth()};
+    document.getElementById("calTitle").textContent=calState.year+"年"+MONTH_NAMES[calState.month];
+    renderWeek();
+    var isToday=selectedDayStr===todayStr();
+    document.getElementById("wkDayTitle").textContent=isToday ? "📌 今日の予定" : "📌 "+(sel.getMonth()+1)+"/"+sel.getDate()+"("+DOW_NAMES[sel.getDay()]+")の予定";
+    var evs=eventsByDate[selectedDayStr]||[];
+    document.getElementById("wkDaySub").textContent=evs.length ? evs.length+"件" : "";
+    var list=document.getElementById("wkDayList");
+    clearChildren(list);
+    if(!store.schedule){
+      list.appendChild(el("div","empty","スケジュールが未読込です。\n右上の⚙ → 「ファイルを選ぶ」から schedule.mw を選んでください。"));
+    }else{
+      var dStr=selectedDayStr;
+      list.appendChild(el("div","tl-hint", evs.length ? "時間帯をタップで登録、予定をタップで変更・削除" : "予定はありません（時間帯をタップで登録）"));
+      var res=buildTimeline(dStr, {
+        full:false,
+        onSlot:function(min){ openDayModal(dStr, "timeline", {slot:min}); },
+        onEvent:function(ev){ openDayModal(dStr, "timeline", {edit:ev}); }
+      });
+      list.appendChild(res.node);
+      res.tl.parentNode.scrollTop=res.focusPx;
+      updateNowLine();
+    }
+    updateGlow();
   }
 
   function shiftMonth(n){
@@ -1212,8 +1713,58 @@
     if(calState.month>11){ calState.month=0; calState.year++; }
     renderCalendar();
   }
+  function shiftWeek(n){
+    var d=new Date(selectedDayStr+"T00:00:00");
+    d.setDate(d.getDate()+7*n);
+    selectedDayStr=fmtDate(d);
+    renderCalendar();
+  }
+  // ‹ › とスワイプ: 週間カレンダでは1週、それ以外は1か月
+  function shiftNav(n){ if(currentLayout==="week") shiftWeek(n); else shiftMonth(n); }
   onSwipe(document.getElementById("cal1Wrap"), shiftMonth);
   onSwipe(document.getElementById("viewCal2"), shiftMonth);
+  onSwipe(document.getElementById("weekGrid"), shiftWeek);
+
+  /* =====================================================================
+     年月を選ぶ（半年・1年先などへ一気に移動）
+  ===================================================================== */
+  var ymYear=calState.year;
+  function renderYmPicker(){
+    document.getElementById("ymYear").textContent=ymYear+"年";
+    var grid=document.getElementById("ymGrid");
+    clearChildren(grid);
+    var t=new Date();
+    for(var m=0;m<12;m++){
+      var b=el("button",null,(m+1)+"月");
+      if(ymYear===t.getFullYear() && m===t.getMonth()) b.classList.add("cur");
+      if(ymYear===calState.year && m===calState.month) b.classList.add("sel");
+      b.addEventListener("click", (function(m){ return function(){ pickMonth(ymYear, m); }; })(m));
+      grid.appendChild(b);
+    }
+  }
+  function pickMonth(y, m){
+    var t=new Date();
+    var d=new Date(y, m, 1);
+    y=d.getFullYear(); m=d.getMonth();
+    // 今月なら今日、それ以外はその月の1日を選ぶ
+    selectedDayStr=(t.getFullYear()===y && t.getMonth()===m) ? todayStr() : fmtDate(d);
+    calState={year:y, month:m};
+    closeOverlay("ymSheet");
+    renderCalendar();
+  }
+  function openYmPicker(){ ymYear=calState.year; renderYmPicker(); openOverlay("ymSheet"); }
+  document.getElementById("calPick").addEventListener("click", openYmPicker);
+  document.getElementById("calTitle").addEventListener("click", openYmPicker);
+  document.getElementById("ymPrev").addEventListener("click", function(){ ymYear--; renderYmPicker(); });
+  document.getElementById("ymNext").addEventListener("click", function(){ ymYear++; renderYmPicker(); });
+  document.getElementById("ymClose").addEventListener("click", function(){ closeOverlay("ymSheet"); });
+  document.querySelectorAll(".ym-quick .hbtn").forEach(function(b){
+    b.addEventListener("click", function(){
+      var n=+b.dataset.shift;
+      if(n===0){ var t=new Date(); pickMonth(t.getFullYear(), t.getMonth()); }
+      else pickMonth(calState.year, calState.month+n);
+    });
+  });
 
   /* =====================================================================
      ダブルタップ → 「スケジュール登録」か「タスク登録」かの選択
@@ -1228,7 +1779,7 @@
   document.getElementById("chooseSchedule").addEventListener("click", function(){
     if(!store.schedule){ showToast("先に ⚙設定 から schedule.mw を読み込んでください"); return; }
     switchOverlay("chooseSheet", "dayModal");
-    fillDayModal(chooseDayStr);
+    fillDayModal(chooseDayStr, "list");
   });
   document.getElementById("chooseTask").addEventListener("click", function(){
     if(!store.tasks){ showToast("先に ⚙設定 から taskList.md を読み込んでください"); return; }
@@ -1260,22 +1811,92 @@
     saveScheduleEvents();
   }
 
-  function openDayModal(dStr){
-    if(!store.schedule) return;
-    fillDayModal(dStr);
+  // mode: "list"=PC版と同じ一覧（予定のない時間は出ない） / "timeline"=タブレット版右側と同じ時間軸（0〜24時）
+  // opts.slot=分 → その時刻で登録欄を開く / opts.edit=予定 → その予定の変更欄を開く
+  var dayMode="list";
+  var ICON_CLOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  var ICON_LIST='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg>';
+  function openDayModal(dStr, mode, opts){
+    if(!store.schedule){ showToast("先に ⚙設定 から schedule.mw を読み込んでください"); return; }
+    fillDayModal(dStr, mode||"list");
     openOverlay("dayModal");
+    if(dayMode==="timeline"){
+      renderDayTimeline(false); // scroll position can only be set once the modal is visible
+      if(opts && opts.slot!=null) showDayAddAt(opts.slot);
+      else if(opts && opts.edit) showDayEdit(opts.edit);
+    }
   }
-  function fillDayModal(dStr){
+  function fillDayModal(dStr, mode){
     dayModalStr=dStr;
     var cellDate=new Date(dStr+"T00:00:00");
     document.getElementById("dayModalTitle").textContent=cellDate.getFullYear()+"年"+(cellDate.getMonth()+1)+"月"+cellDate.getDate()+"日（"+DOW_NAMES[cellDate.getDay()]+"）の予定";
-    renderDayEventsList(dStr);
+    resetDayAddForm("09:00", "10:00");
+    setDayMode(mode);
+    refreshDayModal(false);
+  }
+  function resetDayAddForm(start, end){
     document.getElementById("day-new-title").value="";
     document.getElementById("day-new-allday").checked=false;
-    document.getElementById("day-new-start").value="09:00";
-    document.getElementById("day-new-end").value="10:00";
+    document.getElementById("day-new-start").value=start;
+    document.getElementById("day-new-end").value=end;
     updateDayFormTimeState();
   }
+  function setDayMode(mode){
+    dayMode=mode;
+    document.querySelector("#dayModal .modal").classList.toggle("tl-mode", mode==="timeline");
+    var btn=document.getElementById("dayModeBtn");
+    btn.innerHTML=mode==="timeline" ? ICON_LIST : ICON_CLOCK;
+    btn.title=mode==="timeline" ? "一覧表示に切り替え" : "時間軸表示に切り替え";
+    clearDayEditor();
+  }
+  document.getElementById("dayModeBtn").addEventListener("click", function(){
+    setDayMode(dayMode==="timeline" ? "list" : "timeline");
+    refreshDayModal(false);
+  });
+  function refreshDayModal(keepScroll){
+    if(dayMode==="timeline") renderDayTimeline(keepScroll); else renderDayEventsList(dayModalStr);
+  }
+  function renderDayTimeline(keepScroll){
+    var sc=document.getElementById("dayTlScroll");
+    var prev=sc.scrollTop;
+    clearChildren(sc);
+    var res=buildTimeline(dayModalStr, {full:true, onSlot:showDayAddAt, onEvent:showDayEdit});
+    sc.appendChild(res.node);
+    sc.scrollTop=keepScroll ? prev : res.focusPx;
+    updateNowLine();
+    updateGlow();
+  }
+  // 時間軸の登録・変更欄は上（#dayEditorSlot）に出す。閉じるときは登録欄を元の場所に戻す
+  function clearDayEditor(){
+    var slot=document.getElementById("dayEditorSlot");
+    var form=document.getElementById("dayAddForm");
+    if(form.parentNode===slot) document.getElementById("dayModalBody").appendChild(form);
+    clearChildren(slot);
+    document.querySelectorAll("#dayTlScroll .tl-slot").forEach(function(s){ s.remove(); });
+  }
+  function showDayAddAt(min){
+    clearDayEditor();
+    document.getElementById("dayEditorSlot").appendChild(document.getElementById("dayAddForm"));
+    resetDayAddForm(minToHM(min), minToHM(Math.min(min+60, 24*60-1)));
+    // 選んだ時間帯（1時間分）に点線の枠を出し、見える位置までスクロール
+    var sc=document.getElementById("dayTlScroll");
+    var tl=sc.querySelector(".tl");
+    if(tl){
+      var px=TL_PX_PER_HOUR/60, top=(min-(+tl.dataset.startH)*60)*px;
+      var mark=el("div","tl-slot");
+      mark.style.top=top+"px";
+      mark.style.height=(60*px-2)+"px";
+      tl.appendChild(mark);
+      var y=tl.offsetTop+top;
+      if(y<sc.scrollTop || y>sc.scrollTop+sc.clientHeight-70) sc.scrollTop=Math.max(0, y-60);
+    }
+    setTimeout(function(){ document.getElementById("day-new-title").focus(); }, 60);
+  }
+  function showDayEdit(ev){
+    clearDayEditor();
+    document.getElementById("dayEditorSlot").appendChild(renderDayEditForm(dayModalStr, ev, true));
+  }
+  document.getElementById("day-new-cancel").addEventListener("click", clearDayEditor);
   function updateDayFormTimeState(){
     var allday=document.getElementById("day-new-allday").checked;
     document.getElementById("day-new-start").disabled=allday;
@@ -1307,20 +1928,22 @@
     acts.appendChild(editBtn); acts.appendChild(delBtn);
     row.appendChild(acts);
 
-    editBtn.addEventListener("click", function(){ row.replaceWith(renderDayEditForm(dStr, ev)); });
-    delBtn.addEventListener("click", function(){
-      var msg=ev.isMultiDay?"複数日にまたがる予定です。すべての日程を削除します。よろしいですか？":"この予定を削除します。よろしいですか？";
-      if(confirm(msg)){
-        deleteScheduleEvent(ev.id);
-        renderDayEventsList(dStr);
-        renderCalendar();
-        showToast("予定を削除しました");
-      }
-    });
+    editBtn.addEventListener("click", function(){ row.replaceWith(renderDayEditForm(dStr, ev, false)); });
+    delBtn.addEventListener("click", function(){ confirmDeleteEvent(ev); });
     return row;
   }
+  function confirmDeleteEvent(ev){
+    var msg=ev.isMultiDay?"複数日にまたがる予定です。すべての日程を削除します。よろしいですか？":"この予定を削除します。よろしいですか？";
+    if(!confirm(msg)) return;
+    deleteScheduleEvent(ev.id);
+    clearDayEditor();
+    refreshDayModal(true);
+    renderCalendar();
+    showToast("予定を削除しました");
+  }
 
-  function renderDayEditForm(dStr, ev){
+  // inEditor=true: 時間軸の上の欄に出す（削除ボタン付き）。false: 一覧の行と入れ替える
+  function renderDayEditForm(dStr, ev, inEditor){
     var wrap=el("div","day-edit-form");
     var row1=el("div","row");
     var titleInput=el("input"); titleInput.type="text"; titleInput.value=ev.title;
@@ -1338,16 +1961,26 @@
     row2.appendChild(alldayLabel); row2.appendChild(startInput); row2.appendChild(sep); row2.appendChild(endInput);
     row2.appendChild(saveBtn); row2.appendChild(cancelBtn);
     wrap.appendChild(row1); wrap.appendChild(row2);
+    if(inEditor){
+      var row3=el("div","row");
+      var delBtn=el("button","btn small danger","🗑 この予定を削除");
+      delBtn.addEventListener("click", function(){ confirmDeleteEvent(ev); });
+      row3.appendChild(delBtn);
+      wrap.appendChild(row3);
+    }
 
     saveBtn.addEventListener("click", function(){
       var t=titleInput.value.trim();
       if(!t) return;
       updateScheduleEvent(ev.id, { title:t, allDay:alldayCb.checked, startTime:startInput.value, endTime:endInput.value });
-      renderDayEventsList(dStr);
+      clearDayEditor();
+      refreshDayModal(true);
       renderCalendar();
       showToast("予定を更新しました");
     });
-    cancelBtn.addEventListener("click", function(){ wrap.replaceWith(renderDayEventRow(dStr, ev)); });
+    cancelBtn.addEventListener("click", function(){
+      if(inEditor) clearDayEditor(); else wrap.replaceWith(renderDayEventRow(dStr, ev));
+    });
     return wrap;
   }
 
@@ -1357,7 +1990,8 @@
     var allDay=document.getElementById("day-new-allday").checked;
     addScheduleEvent(dayModalStr, title, allDay, document.getElementById("day-new-start").value, document.getElementById("day-new-end").value);
     document.getElementById("day-new-title").value="";
-    renderDayEventsList(dayModalStr);
+    clearDayEditor();
+    refreshDayModal(true);
     renderCalendar();
     showToast("予定を追加しました");
   });
@@ -1760,9 +2394,10 @@
   /* =====================================================================
      SHELL: レイアウト切替 / 下のタブ / 重なり画面
   ===================================================================== */
-  var LAYOUT_VIEWS={cal1:"viewCal1", cal2:"viewCal2", board:"viewBoard"};
+  // タスクボード(board)は下のタブ「タスク」からだけ開く。レイアウト切替は cal1 / cal2 / week
+  var LAYOUT_VIEWS={cal1:"viewCal1", cal2:"viewCal2", week:"viewWeek", board:"viewBoard"};
   var currentLayout=LAYOUT_VIEWS[lsGet(LS_PREFIX+"layout")] ? lsGet(LS_PREFIX+"layout") : "cal1";
-  var lastCalLayout=lsGet(LS_PREFIX+"calLayout")==="cal2" ? "cal2" : "cal1";
+  var lastCalLayout=(function(v){ return v==="cal2" || v==="week" ? v : "cal1"; })(lsGet(LS_PREFIX+"calLayout"));
   function showLayout(layout){
     if(!LAYOUT_VIEWS[layout]) layout="cal1";
     currentLayout=layout;
@@ -1772,7 +2407,7 @@
     document.querySelectorAll(".view").forEach(function(v){ v.classList.toggle("active", v.id===LAYOUT_VIEWS[layout]); });
     document.querySelectorAll(".tab").forEach(function(t){ t.classList.toggle("active", t.dataset.tab===(layout==="board"?"task":"cal")); });
     document.querySelectorAll(".layout-item").forEach(function(b){ b.classList.toggle("active", b.dataset.layout===layout); });
-    if(layout==="board") renderBoard(); else renderCalendar(); // cell height depends on the view being visible
+    if(layout==="board"){ renderBoard(); updateGlow(); } else renderCalendar(); // cell height depends on the view being visible
   }
   document.querySelectorAll(".tab").forEach(function(t){
     t.addEventListener("click", function(){ showLayout(t.dataset.tab==="task" ? "board" : lastCalLayout); });
@@ -1813,7 +2448,74 @@
     o.addEventListener("click", function(e){ if(e.target===o) closeOverlay(o.id); });
   });
 
-  document.getElementById("settingsBtn").addEventListener("click", function(){ renderLoadRows(); updateBgInfo(); openOverlay("settingsSheet"); });
+  document.getElementById("settingsBtn").addEventListener("click", function(){ renderLoadRows(); updateBgInfo(); renderSwitches(); renderRuleList(); openOverlay("settingsSheet"); });
+
+  /* ---- 設定: 発光 / レイアウト1の初期表示 / 予定の色分けルール ---- */
+  function renderSwitches(){
+    document.getElementById("glowSwitch").classList.toggle("on", glowOn);
+    document.getElementById("expDaySwitch").classList.toggle("on", expandDayDefault);
+    document.getElementById("expTaskSwitch").classList.toggle("on", expandTaskDefault);
+  }
+  document.getElementById("glowSwitch").addEventListener("click", function(){
+    glowOn=!glowOn;
+    lsSet(LS_PREFIX+"glow", glowOn?"1":"0");
+    renderSwitches();
+    updateGlow();
+  });
+  // 初期表示を変えたら、今の表示もそれに合わせる
+  document.getElementById("expDaySwitch").addEventListener("click", function(){
+    expandDayDefault=!expandDayDefault;
+    lsSet(LS_PREFIX+"expDay", expandDayDefault?"1":"0");
+    foldState.day=expandDayDefault;
+    renderSwitches();
+    if(currentLayout==="cal1") renderCalendar();
+  });
+  document.getElementById("expTaskSwitch").addEventListener("click", function(){
+    expandTaskDefault=!expandTaskDefault;
+    lsSet(LS_PREFIX+"expTask", expandTaskDefault?"1":"0");
+    foldState.task=expandTaskDefault;
+    renderSwitches();
+    if(currentLayout==="cal1") renderCalendar();
+  });
+
+  var ruleRenderTimer=null;
+  function onRulesChanged(){
+    saveColorRules();
+    clearTimeout(ruleRenderTimer);
+    ruleRenderTimer=setTimeout(renderAll, 250);
+  }
+  function renderRuleList(){
+    var wrap=document.getElementById("ruleList");
+    clearChildren(wrap);
+    colorRules.forEach(function(r, i){
+      var row=el("div","rule-row");
+      var sw=el("span","sw"); sw.style.background=COLOR_HEX[r.c]||"transparent";
+      var input=el("input"); input.type="text"; input.value=r.w; input.placeholder="文言";
+      input.addEventListener("input", function(){ r.w=input.value; onRulesChanged(); });
+      var sel=el("select");
+      COLOR_OPTIONS.forEach(function(o){ var op=el("option",null,o[1]); op.value=o[0]; if(o[0]===r.c) op.selected=true; sel.appendChild(op); });
+      sel.addEventListener("change", function(){ r.c=sel.value; sw.style.background=COLOR_HEX[r.c]; onRulesChanged(); });
+      var up=el("button","icon-btn","▲"); up.title="上へ（優先）"; up.disabled=i===0;
+      up.addEventListener("click", function(){ colorRules.splice(i-1, 0, colorRules.splice(i,1)[0]); onRulesChanged(); renderRuleList(); });
+      var del=el("button","icon-btn","✕"); del.title="削除";
+      del.addEventListener("click", function(){ colorRules.splice(i,1); onRulesChanged(); renderRuleList(); });
+      row.appendChild(sw); row.appendChild(input); row.appendChild(sel); row.appendChild(up); row.appendChild(del);
+      wrap.appendChild(row);
+    });
+  }
+  document.getElementById("ruleAdd").addEventListener("click", function(){
+    colorRules.push({w:"", c:"red"});
+    saveColorRules();
+    renderRuleList();
+    var inputs=document.querySelectorAll("#ruleList input");
+    if(inputs.length) inputs[inputs.length-1].focus();
+  });
+  document.getElementById("ruleReset").addEventListener("click", function(){
+    if(!confirm("予定の色分けルールを初期値に戻しますか？")) return;
+    colorRules=defaultColorRules();
+    onRulesChanged();
+    renderRuleList();
+  });
   document.getElementById("settingsClose").addEventListener("click", function(){ closeOverlay("settingsSheet"); });
   document.getElementById("loadPick").addEventListener("click", function(){ document.getElementById("fileInput").click(); });
   document.getElementById("fileInput").addEventListener("change", function(e){
@@ -1823,8 +2525,8 @@
   document.getElementById("exportSchedule").addEventListener("click", function(){ exportKind("schedule"); });
   document.getElementById("exportTasks").addEventListener("click", function(){ exportKind("tasks"); });
 
-  document.getElementById("calPrev").addEventListener("click", function(){ shiftMonth(-1); });
-  document.getElementById("calNext").addEventListener("click", function(){ shiftMonth(1); });
+  document.getElementById("calPrev").addEventListener("click", function(){ shiftNav(-1); });
+  document.getElementById("calNext").addEventListener("click", function(){ shiftNav(1); });
   document.getElementById("calToday").addEventListener("click", function(){
     var d=new Date(); calState={year:d.getFullYear(), month:d.getMonth()}; selectedDayStr=todayStr(); renderCalendar();
   });
@@ -1832,7 +2534,7 @@
   /* =====================================================================
      着せ替え: 標準 / 1.アクセシビリティ重視 / 3.ミニマリズム / 5.アクティブ① / 6.アクティブ②
   ===================================================================== */
-  var THEME_COLORS={"":"#040810", accessibility:"#00566b", minimal:"#2b323d", active1:"#0e1217", active2:"#0e1217"};
+  var THEME_COLORS={"":"#040810", accessibility:"#00566b", dark:"#181b21", minimal:"#2b323d", texture:"#0d0620", active1:"#0e1217", active2:"#0e1217"};
   var bgLayers=[document.getElementById("bgLayerA"), document.getElementById("bgLayerB")];
   var bgList=[], bgActive=0, bgTimer=null, bgRunning=false;
   var bgIndex=parseInt(lsGet(LS_PREFIX+"bgIndex"),10)||0;
@@ -2020,13 +2722,14 @@
       if(item.dataset.theme==="active2" && !bgList.length) showToast("背景画像は下の「🖼 画像を選ぶ」から設定できます");
     });
   });
-  applyTheme(lsGet(LS_PREFIX+"theme")||"");
+  // 着せ替えを選んだことがなければ「3. ミニマリズム」（""=標準を選んだ場合はそのまま）
+  (function(saved){ applyTheme(saved===null ? "minimal" : saved); })(lsGet(LS_PREFIX+"theme"));
 
   /* =====================================================================
      RENDER + CLOCK
   ===================================================================== */
   function renderAll(){
-    if(currentLayout==="board") renderBoard(); else renderCalendar();
+    if(currentLayout==="board"){ renderBoard(); updateGlow(); } else renderCalendar();
   }
 
   var lastDay=todayStr();
@@ -2038,7 +2741,8 @@
       lastDay=t; renderAll();
       return;
     }
-    updateTodayListRowStates();
+    updateGlow();
+    updateNowLine();
   }
   setInterval(tick, 30000); // PC版と同じ30秒ごと
   document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") tick(); });

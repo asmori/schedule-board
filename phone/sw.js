@@ -3,7 +3,7 @@
 // こうしておくと、GitHub に新しい index.html を置けば次に開いたときに反映され、
 // 電波がないときも前回の画面で開ける。予定などのデータはスマホ内（localStorage）にあり、ここでは扱わない。
 // タブレット版と同じ場所で公開しても互いの保存分を消さないよう、名前の頭 "skbt-phone-" のものだけ整理する。
-const CACHE = "skbt-phone-v2";
+const CACHE = "skbt-phone-v3";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (event) => {
