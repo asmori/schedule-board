@@ -1,12 +1,12 @@
 {
-  "name": "スケジュール&タスク統合ボード",
-  "short_name": "スケジュール",
-  "description": "スケジュールカンバンボードのタブレット版（閲覧専用）",
+  "name": "スケジュール&タスク（スマホ）",
+  "short_name": "予定タスク",
+  "description": "スケジュールカンバンボードのスマホ版（カレンダとタスクの確認・登録）",
   "lang": "ja",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "portrait",
   "background_color": "#040810",
   "theme_color": "#040810",
   "icons": [

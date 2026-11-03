@@ -1,8 +1,9 @@
-// スケジュールカンバンボード（アプリ版）のサービスワーカー。
+// スケジュールカンバンボード（スマホアプリ版）のサービスワーカー。
 // 画面ファイルは「まずネットから取得、つながらないときは前回の保存分」を使う。
 // こうしておくと、GitHub に新しい index.html を置けば次に開いたときに反映され、
-// 電波がないときも前回の画面で開ける。予定などのデータはタブレット内（localStorage）にあり、ここでは扱わない。
-const CACHE = "skbt-app-v1";
+// 電波がないときも前回の画面で開ける。予定などのデータはスマホ内（localStorage）にあり、ここでは扱わない。
+// タブレット版と同じ場所で公開しても互いの保存分を消さないよう、名前の頭 "skbt-phone-" のものだけ整理する。
+const CACHE = "skbt-phone-v3";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -12,7 +13,7 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k.indexOf("skbt-phone-") === 0 && k !== CACHE).map((k) => caches.delete(k))))
   );
   self.clients.claim();
 });
