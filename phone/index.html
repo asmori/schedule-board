@@ -73,8 +73,30 @@
   .hdr-cal,.hdr-task{display:none;align-items:center;gap:4px;flex:1;min-width:0;}
   html[data-view="cal"] .hdr-cal,html[data-view="task"] .hdr-task{display:flex;}
   .hdr-cal .hdr-title{flex:0 1 auto;}
-  #calTitle{cursor:pointer;}
-  .hbtn.cal-pick{width:34px;min-width:34px;}
+  #calTitle{cursor:pointer;font-size:16px;overflow:hidden;text-overflow:ellipsis;}
+  header{padding:8px 8px;gap:5px;}
+  .hbtn.icon{width:36px;min-width:36px;}
+  .hbtn.nav{min-width:30px;width:30px;}
+  .hbtn.cal-pick{width:32px;min-width:32px;}
+  html[data-view="task"] #fsBtn{display:none;}
+
+  /* 全画面表示: ヘッダーと下のタブを隠してカレンダを画面いっぱいに。右上の小さなボタンか「戻る」で元に戻す */
+  html.fs header,html.fs nav.tabbar,html.fs #dayScroll{display:none !important;}
+  .fs-exit{display:none;position:fixed;top:calc(env(safe-area-inset-top) + 3px);right:calc(env(safe-area-inset-right) + 3px);z-index:90;
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:rgba(var(--panel-rgb),0.72);color:var(--text);
+    align-items:center;justify-content:center;padding:0;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+  .fs-exit svg{width:18px;height:18px;}
+  html.fs .fs-exit{display:flex;}
+
+  /* 予定の長押しドラッグ（別の日付へ移動） */
+  .cal-ev,.cal-chip,.wk-ev,.tl-ev{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;}
+  .ev-dragging{opacity:0.35;}
+  .ev-ghost{position:fixed !important;z-index:300;pointer-events:none;opacity:0.94;margin:0;transform:scale(1.06);
+    box-shadow:0 8px 24px rgba(0,0,0,0.5);background-color:var(--panel-solid);color:var(--text);}
+  .drop-target{outline:3px solid var(--amber);outline-offset:-2px;}
+  #moveSheet{z-index:130;}
+  .move-title{font-size:15px;margin:0 0 10px;padding:8px 10px;border-radius:8px;border-left:4px solid var(--cyan);background:rgba(var(--accent-rgb),0.08);word-break:break-word;}
+  .move-form{margin-top:0;}
   .hbtn.cal-pick svg{width:19px;height:19px;}
   #calToday{padding:0 8px;}
   [hidden]{display:none !important;}
@@ -175,6 +197,8 @@
   .tl-hour{position:absolute;left:-40px;right:0;border-top:1px solid rgba(127,127,127,0.25);font-size:10.5px;color:var(--text-dim);pointer-events:none;}
   .tl-hour span{position:absolute;left:0;top:-7px;width:36px;text-align:right;padding-right:4px;font-variant-numeric:tabular-nums;}
   .tl-half{position:absolute;left:0;right:0;border-top:1px dashed rgba(127,127,127,0.13);pointer-events:none;}
+  /* 0〜9時・12〜13時・18時以降は薄いグレー */
+  .tl-off{position:absolute;left:-40px;right:0;background:rgba(127,127,127,0.14);pointer-events:none;}
   .tl-ev{display:flex;flex-direction:column;padding:2px 6px;border-radius:6px;border:1px solid var(--border);border-left:3px solid var(--cyan);
     background:rgba(var(--accent-rgb),0.12);overflow:hidden;font-size:12px;cursor:pointer;min-width:0;}
   .tl .tl-ev{position:absolute;z-index:1;}
@@ -387,7 +411,18 @@
   .modal.tl-mode #dayTlScroll{display:block;flex:1;min-height:0;overflow-y:auto;}
   .modal.tl-mode #dayEditorSlot{display:block;flex-shrink:0;}
   .modal.tl-mode #dayEditorSlot:empty{display:none;}
-  #dayEditorSlot .day-add-form,#dayEditorSlot .day-edit-form{margin:0 0 8px;border-color:var(--cyan);}
+  #dayEditorSlot .day-add-form,#dayEditorSlot .day-edit-form{margin:0 0 8px;border-color:var(--cyan);background:var(--panel-solid);}
+  /* 「終日」〜終了時刻を1行に収める */
+  .day-add-form .row.tm-row,.day-edit-form .row.tm-row{flex-wrap:nowrap;gap:5px;}
+  .day-add-form .tm-row input[type=time],.day-edit-form .tm-row input[type=time]{width:96px;min-width:0;flex:0 1 96px;padding:5px 2px;}
+  .day-edit-form input[type=date]{background:var(--navy-900);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;padding:5px 4px;color-scheme:var(--scheme);font-family:inherit;}
+  .day-edit-form .lbl{font-size:13px;color:var(--text-dim);}
+  .row .push{margin-left:auto;}
+  /* 1日のスケジュールは背景を透かして後ろのカレンダを見せる。予定をドラッグ中はさらに薄くして日付へ落とせるようにする */
+  #dayModal{background:rgba(2,6,12,0.22);}
+  #dayModal .modal{background:rgba(var(--panel-rgb),0.78);}
+  #dayModal.drag-through{background:transparent;pointer-events:none;}
+  #dayModal.drag-through .modal{opacity:0.12;}
   .modal-body > .day-add-form #day-new-cancel{display:none;}
 
   .toast{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + 20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
@@ -399,29 +434,29 @@
      THEMES（PC版の 1.アクセシビリティ重視 / 3.ミニマリズム、タブレット版の 5.アクティブ① / 6.アクティブ②）
   ===================================================================== */
   html[data-theme="accessibility"]{
-    --navy-950:#d0d5da; --navy-900:#eef1f3;
+    --navy-950:#e8ecef; --navy-900:#f7f9fa;
     --cyan:#0a7f91; --cyan-soft:#00566b; --cyan-dim:#1ba08f;
     --violet:#4b2fc9; --amber:#8a4b00; --mint:#0e8a6a; --danger:#c8102e;
     --text:#22272b; --text-dim:#4a535b;
-    --border:rgba(0,40,50,0.27); --panel:#d0d5da; --panel-solid:#dfe3e7;
-    --accent-rgb:10,127,145; --panel-rgb:228,232,235; --bg-mid-rgb:186,193,200;
-    --body-bg:#cdd3d8;
+    --border:rgba(0,40,50,0.22); --panel:#eef1f3; --panel-solid:#f4f6f7;
+    --accent-rgb:10,127,145; --panel-rgb:240,243,245; --bg-mid-rgb:214,220,225;
+    --body-bg:#e6eaed;
     --header-bg:linear-gradient(90deg,#00566b 0%,#0b7a82 55%,#1ba08f 100%); --header-fg:#fff;
-    --tabbar-bg:#d0d5da;
-    --cell-grad:#e4e8eb; --cell-sat:#dbe4f2; --cell-sun:#f1dde1;
+    --tabbar-bg:#eef1f3;
+    --cell-grad:#fbfcfc; --cell-sat:#eef3fb; --cell-sun:#fbeef0;
     --sun-fg:#c8102e; --sat-fg:#0b5fff; --scheme:light;
   }
   html[data-theme="minimal"]{
-    --navy-950:#cbd0d5; --navy-900:#eef1f3;
+    --navy-950:#e6eaed; --navy-900:#f7f9fa;
     --cyan:#1db9a1; --cyan-soft:#14181d; --cyan-dim:#16917f;
     --violet:#5d56c9; --amber:#c97800; --mint:#14a085; --danger:#d9453d;
     --text:#252b33; --text-dim:#545d67;
-    --border:rgba(30,40,55,0.24); --panel:#cbd0d5; --panel-solid:#dce0e4;
-    --accent-rgb:29,185,161; --panel-rgb:226,230,233; --bg-mid-rgb:180,188,195;
-    --body-bg:#c6cdd3;
+    --border:rgba(30,40,55,0.2); --panel:#eceff1; --panel-solid:#f3f5f6;
+    --accent-rgb:29,185,161; --panel-rgb:238,241,243; --bg-mid-rgb:210,216,221;
+    --body-bg:#e3e7ea;
     --header-bg:#2b323d; --header-fg:#fff;
     --tabbar-bg:#2b323d;
-    --cell-grad:#e2e6e9; --cell-sat:#d9e2ee; --cell-sun:#eedcdf;
+    --cell-grad:#fafbfb; --cell-sat:#edf2f9; --cell-sun:#faedef;
     --sun-fg:#c8102e; --sat-fg:#0b5fff; --scheme:light;
   }
   html[data-theme="minimal"] header{border-bottom:3px solid #1db9a1;}
@@ -566,6 +601,9 @@
         <span class="sub" id="loadedInfo">データ未読込</span>
       </div>
     </div>
+    <button class="hbtn icon" id="fsBtn" title="全画面表示">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
     <button class="hbtn icon" id="layoutBtn" title="レイアウト切替">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
     </button>
@@ -580,6 +618,9 @@
     </div>
   </header>
   <div class="alert-bar" id="alertBar"><div class="alert-track" id="alertTrack"></div></div>
+  <button class="fs-exit" id="fsExit" title="全画面表示を終了">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+  </button>
 
   <main>
     <!-- ============ レイアウト1: カレンダ＋1日の予定・タスク ============ -->
@@ -728,6 +769,28 @@
   </div>
 </div>
 
+<!-- 予定をドラッグして別の日付に落としたとき: 移動先の日付と時刻を決める -->
+<div class="overlay" id="moveSheet">
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <h3>📅 予定を移動</h3>
+    <div class="move-title" id="moveTitle"></div>
+    <div class="day-edit-form move-form">
+      <div class="row"><span class="lbl">日付</span><input type="date" id="mv-date"></div>
+      <div class="row tm-row">
+        <label class="chk"><input type="checkbox" id="mv-allday"> 終日</label>
+        <input type="time" id="mv-start">
+        <span style="color:var(--text-dim);font-size:14px;">〜</span>
+        <input type="time" id="mv-end">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="hbtn" id="mvCancel">キャンセル</button>
+      <button class="hbtn primary" id="mvOk">移動する</button>
+    </div>
+  </div>
+</div>
+
 <!-- 1日のスケジュール: 一覧（PC版と同じ）／時間軸（タブレット版右側と同じ）を切り替え -->
 <div class="modal-overlay" id="dayModal">
   <div class="modal">
@@ -746,12 +809,14 @@
         <div class="row">
           <input type="text" id="day-new-title" placeholder="予定を追加...">
         </div>
-        <div class="row">
+        <div class="row tm-row">
           <label class="chk"><input type="checkbox" id="day-new-allday"> 終日</label>
           <input type="time" id="day-new-start" value="09:00">
           <span style="color:var(--text-dim);font-size:14px;">〜</span>
           <input type="time" id="day-new-end" value="10:00">
-          <button class="btn small primary" id="day-new-add" style="margin-left:auto;">＋ 追加</button>
+        </div>
+        <div class="row">
+          <button class="btn small primary push" id="day-new-add">＋ 追加</button>
           <button class="btn small" id="day-new-cancel">ｷｬﾝｾﾙ</button>
         </div>
       </div>
@@ -815,6 +880,11 @@
   function todayStr(){ return fmtDate(new Date()); }
   function timeStr(d){ d=d||new Date(); return pad(d.getHours())+":"+pad(d.getMinutes()); }
   function uid(){ return "n"+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+  function addDays(s, n){ var d=new Date(s+"T00:00:00"); d.setDate(d.getDate()+n); return fmtDate(d); }
+  function dayDiff(a, b){ return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000); }
+  // 予定をドラッグで動かした直後は、指を離したときのタップ・スワイプを無視する
+  var suppressTapUntil=0;
+  function tapSuppressed(){ return Date.now()<suppressTapUntil; }
   function clearChildren(el){ while(el.firstChild) el.removeChild(el.firstChild); }
   function el(tag, cls, text){
     var e=document.createElement(tag);
@@ -855,6 +925,7 @@
       if(sx==null) return;
       var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
       sx=null;
+      if(tapSuppressed() || evDrag) return;
       if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5) fn(dx<0?1:-1);
     }, {passive:true});
   }
@@ -1260,6 +1331,7 @@
   var DOUBLE_TAP_MS=420;
   var lastTap={d:null, t:0}, tapTimer=null;
   function onCellTap(dStr){
+    if(tapSuppressed()) return;
     var now=Date.now();
     clearTimeout(tapTimer); tapTimer=null;
     if(lastTap.d===dStr && now-lastTap.t<DOUBLE_TAP_MS){
@@ -1318,10 +1390,12 @@
           box=el("div","cal-chip"+cls, ev.title);
         }
         setGlowData(box, dStr, ev, false);
+        attachEvDrag(box, ev, dStr);
         cell.appendChild(box);
       });
       if(dayEvents.length>limit) cell.appendChild(el("div","cal-more","+"+(dayEvents.length-limit)));
 
+      cell.dataset.date=dStr; // 予定のドロップ先
       cell.addEventListener("click", (function(dStr){ return function(){ onCellTap(dStr); }; })(dStr));
       grid.appendChild(cell);
     }
@@ -1354,10 +1428,10 @@
     // どちらかを開いたら、カレンダは画面の約6割
     applyFold();
     renderDayPanel();
-    var lowerH=(foldState.day || foldState.task) ? Math.round(mainH*0.38) : document.getElementById("dayInner").offsetHeight+28; // + 見出しの上下の余白・枠の内側の余白
+    var lowerH=fsOn ? 0 : (foldState.day || foldState.task) ? Math.round(mainH*0.38) :document.getElementById("dayInner").offsetHeight+28; // + 見出しの上下の余白・枠の内側の余白
     var rows1=rowsOf(calState.year, calState.month);
     var h1=Math.floor((mainH - lowerH - 24)/rows1) - 3;
-    renderMonthGrid(document.getElementById("cal1Grid"), calState.year, calState.month, Math.max(50, Math.min(170, h1)), true);
+    renderMonthGrid(document.getElementById("cal1Grid"), calState.year, calState.month, Math.max(50, Math.min(260, h1)), true);
     updateGlow();
   }
 
@@ -1522,7 +1596,8 @@
         var row=el("div","tl-ev allday"+(color?" "+color:""));
         row.appendChild(el("span","tm", ev.isContinuation?"終日（継続）":"終日"));
         row.appendChild(el("span","tt", ev.title));
-        row.addEventListener("click", function(){ opts.onEvent(ev); });
+        row.addEventListener("click", function(){ if(!tapSuppressed()) opts.onEvent(ev); });
+        attachEvDrag(row, ev, dStr);
         top.appendChild(row);
       });
       wrap.appendChild(top);
@@ -1566,6 +1641,14 @@
     var tl=el("div","tl");
     tl.style.height=((endH-startH)*TL_PX_PER_HOUR)+"px";
     tl.dataset.startH=startH;
+    [[0,9],[12,13],[18,24]].forEach(function(band){
+      var s=Math.max(band[0], startH), e=Math.min(band[1], endH);
+      if(e<=s) return;
+      var off=el("div","tl-off");
+      off.style.top=((s-startH)*TL_PX_PER_HOUR)+"px";
+      off.style.height=((e-s)*TL_PX_PER_HOUR)+"px";
+      tl.appendChild(off);
+    });
     for(var h=startH; h<=endH; h++){
       var line=el("div","tl-hour");
       line.style.top=((h-startH)*TL_PX_PER_HOUR)+"px";
@@ -1589,14 +1672,15 @@
       b.style.width="calc("+(100/it.lanes)+"% - 4px)";
       b.appendChild(el("div","tm", ev.time+"–"+(ev.endTime||"")));
       b.appendChild(el("div","tt", ev.title));
-      b.addEventListener("click", function(e){ e.stopPropagation(); opts.onEvent(ev); });
+      b.addEventListener("click", function(e){ e.stopPropagation(); if(!tapSuppressed()) opts.onEvent(ev); });
+      attachEvDrag(b, ev, dStr);
       tl.appendChild(b);
     });
     var isToday=dStr===todayStr();
     if(isToday) tl.appendChild(el("div","tl-now"));
     // 空いている時間帯のタップ: 30分単位でその時刻から登録
     tl.addEventListener("click", function(e){
-      if(e.target.closest && e.target.closest(".tl-ev")) return;
+      if(tapSuppressed() || (e.target.closest && e.target.closest(".tl-ev"))) return;
       var y=e.clientY-tl.getBoundingClientRect().top;
       var min=startH*60+Math.floor(y/px/30)*30;
       opts.onSlot(Math.max(startH*60, Math.min(endH*60-30, min)));
@@ -1654,10 +1738,12 @@
         if(ev.time) row.appendChild(el("span","tm",ev.time));
         row.appendChild(el("span","tx",ev.title));
         setGlowData(row, ds, ev, false);
+        attachEvDrag(row, ev, ds);
         cell.appendChild(row);
       });
       if(evs.length>limit) cell.appendChild(el("div","wk-more","+"+(evs.length-limit)+"件"));
-      cell.addEventListener("click", function(){ selectDay(ds); });
+      cell.dataset.date=ds; // 予定のドロップ先
+      cell.addEventListener("click", function(){ if(!tapSuppressed()) selectDay(ds); });
       grid.appendChild(cell);
     });
     grid.appendChild(renderMiniMonth(sel.getFullYear(), sel.getMonth()));
@@ -1724,6 +1810,128 @@
   onSwipe(document.getElementById("cal1Wrap"), shiftMonth);
   onSwipe(document.getElementById("viewCal2"), shiftMonth);
   onSwipe(document.getElementById("weekGrid"), shiftWeek);
+
+  /* =====================================================================
+     予定の長押しドラッグ: カレンダ・週間カレンダ・時間軸の予定を、別の日付（data-date を持つマス）へ落とす。
+     1日のスケジュール画面から動かすときは画面を薄くして、後ろのカレンダの日付へ落とせるようにする。
+     落としたら「予定を移動」で日付と時刻を決める
+  ===================================================================== */
+  var evDrag=null; // {ev, srcDate, node, ghost, offX, offY, target}
+  function beginEvDrag(node, ev, srcDate, x, y){
+    if(evDrag) return;
+    var r=node.getBoundingClientRect();
+    var ghost=node.cloneNode(true);
+    ghost.removeAttribute("data-gday");
+    ghost.classList.add("ev-ghost");
+    ghost.style.width=Math.max(r.width, 90)+"px";
+    ghost.style.height=Math.min(r.height, 60)+"px";
+    document.body.appendChild(ghost);
+    node.classList.add("ev-dragging");
+    if(node.closest("#dayModal")) document.getElementById("dayModal").classList.add("drag-through");
+    evDrag={ev:ev, srcDate:srcDate, node:node, ghost:ghost, offX:Math.min(x-r.left, 60), offY:Math.min(y-r.top, 30), target:null};
+    if(navigator.vibrate) try{ navigator.vibrate(25); }catch(e){}
+    moveEvDrag(x, y);
+  }
+  function moveEvDrag(x, y){
+    if(!evDrag) return;
+    evDrag.ghost.style.left=(x-evDrag.offX)+"px";
+    evDrag.ghost.style.top=(y-evDrag.offY)+"px";
+    var under=document.elementFromPoint(x, y);
+    var cell=under && under.closest ? under.closest("[data-date]") : null;
+    if(cell!==evDrag.target){
+      if(evDrag.target) evDrag.target.classList.remove("drop-target");
+      evDrag.target=cell;
+      if(cell) cell.classList.add("drop-target");
+    }
+  }
+  function endEvDrag(cancel){
+    if(!evDrag) return;
+    var d=evDrag; evDrag=null;
+    d.ghost.remove();
+    d.node.classList.remove("ev-dragging");
+    if(d.target) d.target.classList.remove("drop-target");
+    document.getElementById("dayModal").classList.remove("drag-through");
+    suppressTapUntil=Date.now()+500;
+    if(cancel || !d.target || d.target.dataset.date===d.srcDate) return;
+    openMoveSheet(d.ev, d.srcDate, d.target.dataset.date);
+  }
+  function attachEvDrag(node, ev, srcDate){
+    var timer=null, sx=0, sy=0;
+    node.addEventListener("touchstart", function(e){
+      if(e.touches.length!==1 || !store.schedule) return;
+      sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+      clearTimeout(timer);
+      timer=setTimeout(function(){ timer=null; beginEvDrag(node, ev, srcDate, sx, sy); }, 400);
+    }, {passive:true});
+    node.addEventListener("touchmove", function(e){
+      var p=e.touches[0];
+      if(evDrag && evDrag.node===node){ e.preventDefault(); moveEvDrag(p.clientX, p.clientY); return; }
+      // 長押しの前に指が動いたら、ドラッグではなくスクロール・スワイプ
+      if(timer && (Math.abs(p.clientX-sx)>8 || Math.abs(p.clientY-sy)>8)){ clearTimeout(timer); timer=null; }
+    }, {passive:false});
+    node.addEventListener("touchend", function(e){
+      if(timer){ clearTimeout(timer); timer=null; }
+      if(evDrag && evDrag.node===node){ e.preventDefault(); endEvDrag(false); }
+    }, {passive:false});
+    node.addEventListener("touchcancel", function(){
+      if(timer){ clearTimeout(timer); timer=null; }
+      if(evDrag && evDrag.node===node) endEvDrag(true);
+    });
+    node.addEventListener("contextmenu", function(e){ e.preventDefault(); });
+    // マウス（PCで開いたとき）: 押したまま動かすとドラッグ
+    node.addEventListener("mousedown", function(e){
+      if(e.button!==0 || !store.schedule) return;
+      var mx=e.clientX, my=e.clientY;
+      function mm(ev2){
+        if(!evDrag && (Math.abs(ev2.clientX-mx)>6 || Math.abs(ev2.clientY-my)>6)) beginEvDrag(node, ev, srcDate, mx, my);
+        if(evDrag && evDrag.node===node){ ev2.preventDefault(); moveEvDrag(ev2.clientX, ev2.clientY); }
+      }
+      function mu(){
+        document.removeEventListener("mousemove", mm);
+        document.removeEventListener("mouseup", mu);
+        if(evDrag && evDrag.node===node) endEvDrag(false);
+      }
+      document.addEventListener("mousemove", mm);
+      document.addEventListener("mouseup", mu);
+    });
+  }
+
+  // 落とした日付を初期値に、日付・終日・開始/終了時刻を決めて移動する。複数日の予定は日数を保ったまま動かす
+  var moveEventId=null;
+  function openMoveSheet(ev, srcDate, toDate){
+    var src=scheduleEvents.find(function(e){ return e.id===ev.id; });
+    if(!src) return;
+    moveEventId=src.id;
+    document.getElementById("moveTitle").textContent=src.title;
+    document.getElementById("mv-date").value=addDays(src.startDate, dayDiff(srcDate, toDate));
+    document.getElementById("mv-allday").checked=!!src.allDay;
+    document.getElementById("mv-start").value=src.startTime||"09:00";
+    document.getElementById("mv-end").value=src.endTime||"10:00";
+    updateMoveTimeState();
+    openOverlay("moveSheet");
+  }
+  function updateMoveTimeState(){
+    var allday=document.getElementById("mv-allday").checked;
+    document.getElementById("mv-start").disabled=allday;
+    document.getElementById("mv-end").disabled=allday;
+  }
+  document.getElementById("mv-allday").addEventListener("change", updateMoveTimeState);
+  document.getElementById("mvCancel").addEventListener("click", function(){ closeOverlay("moveSheet"); });
+  document.getElementById("mvOk").addEventListener("click", function(){
+    var src=scheduleEvents.find(function(e){ return e.id===moveEventId; });
+    var newStart=document.getElementById("mv-date").value;
+    if(!src || !newStart){ showToast("日付を入力してください"); return; }
+    var allDay=document.getElementById("mv-allday").checked;
+    updateScheduleEvent(src.id, {
+      startDate:newStart, endDate:addDays(src.endDate, dayDiff(src.startDate, newStart)),
+      allDay:allDay, startTime:document.getElementById("mv-start").value, endTime:document.getElementById("mv-end").value
+    });
+    closeOverlay("moveSheet");
+    if(document.getElementById("dayModal").classList.contains("open")){ clearDayEditor(); refreshDayModal(true); }
+    renderCalendar();
+    var d=new Date(newStart+"T00:00:00");
+    showToast("予定を "+(d.getMonth()+1)+"/"+d.getDate()+"("+DOW_NAMES[d.getDay()]+") に移動しました");
+  });
 
   /* =====================================================================
      年月を選ぶ（半年・1年先などへ一気に移動）
@@ -1944,11 +2152,17 @@
 
   // inEditor=true: 時間軸の上の欄に出す（削除ボタン付き）。false: 一覧の行と入れ替える
   function renderDayEditForm(dStr, ev, inEditor){
+    var src=scheduleEvents.find(function(e){ return e.id===ev.id; }) || {startDate:dStr, endDate:dStr};
     var wrap=el("div","day-edit-form");
     var row1=el("div","row");
     var titleInput=el("input"); titleInput.type="text"; titleInput.value=ev.title;
     row1.appendChild(titleInput);
-    var row2=el("div","row");
+    // 日付（複数日の予定は開始日。変えると日数を保ったまま動かす）
+    var rowD=el("div","row");
+    var dateInput=el("input"); dateInput.type="date"; dateInput.value=src.startDate;
+    rowD.appendChild(el("span","lbl", ev.isMultiDay ? "開始日" : "日付")); rowD.appendChild(dateInput);
+    // 「終日」〜終了時刻は1行
+    var row2=el("div","row tm-row");
     var alldayLabel=el("label","chk");
     var alldayCb=el("input"); alldayCb.type="checkbox"; alldayCb.checked=!!ev.allDay;
     alldayLabel.appendChild(alldayCb); alldayLabel.appendChild(document.createTextNode("終日"));
@@ -1956,27 +2170,30 @@
     var sep=el("span",null,"〜"); sep.style.cssText="color:var(--text-dim);font-size:14px;";
     var endInput=el("input"); endInput.type="time"; endInput.value=ev.endTime||"10:00"; endInput.disabled=ev.allDay;
     alldayCb.addEventListener("change", function(){ startInput.disabled=alldayCb.checked; endInput.disabled=alldayCb.checked; });
-    var saveBtn=el("button","btn small primary","保存"); saveBtn.style.marginLeft="auto";
-    var cancelBtn=el("button","btn small","ｷｬﾝｾﾙ");
     row2.appendChild(alldayLabel); row2.appendChild(startInput); row2.appendChild(sep); row2.appendChild(endInput);
-    row2.appendChild(saveBtn); row2.appendChild(cancelBtn);
-    wrap.appendChild(row1); wrap.appendChild(row2);
+    var row3=el("div","row");
     if(inEditor){
-      var row3=el("div","row");
-      var delBtn=el("button","btn small danger","🗑 この予定を削除");
+      var delBtn=el("button","btn small danger","🗑 削除");
       delBtn.addEventListener("click", function(){ confirmDeleteEvent(ev); });
       row3.appendChild(delBtn);
-      wrap.appendChild(row3);
     }
+    var saveBtn=el("button","btn small primary push","保存");
+    var cancelBtn=el("button","btn small","ｷｬﾝｾﾙ");
+    row3.appendChild(saveBtn); row3.appendChild(cancelBtn);
+    wrap.appendChild(row1); wrap.appendChild(rowD); wrap.appendChild(row2); wrap.appendChild(row3);
 
     saveBtn.addEventListener("click", function(){
       var t=titleInput.value.trim();
       if(!t) return;
-      updateScheduleEvent(ev.id, { title:t, allDay:alldayCb.checked, startTime:startInput.value, endTime:endInput.value });
+      var newStart=dateInput.value || src.startDate;
+      var moved=newStart!==src.startDate;
+      updateScheduleEvent(ev.id, { title:t, allDay:alldayCb.checked, startTime:startInput.value, endTime:endInput.value,
+        startDate:newStart, endDate:addDays(src.endDate, dayDiff(src.startDate, newStart)) });
       clearDayEditor();
       refreshDayModal(true);
       renderCalendar();
-      showToast("予定を更新しました");
+      if(moved){ var d=new Date(newStart+"T00:00:00"); showToast("予定を "+(d.getMonth()+1)+"/"+d.getDate()+"("+DOW_NAMES[d.getDay()]+") に移動しました"); }
+      else showToast("予定を更新しました");
     });
     cancelBtn.addEventListener("click", function(){
       if(inEditor) clearDayEditor(); else wrap.replaceWith(renderDayEventRow(dStr, ev));
@@ -2441,8 +2658,27 @@
     document.getElementById(toId).classList.add("open");
     try{ history.replaceState({overlay:toId}, ""); }catch(e){}
   }
+  // 「戻る」: いま開いている画面のうち、戻った先の履歴に当たるもの（重ねて開いた下の画面）は残して閉じる
   window.addEventListener("popstate", function(){
-    document.querySelectorAll(".overlay.open,.modal-overlay.open").forEach(function(o){ o.classList.remove("open"); });
+    var keep=history.state && history.state.overlay;
+    document.querySelectorAll(".overlay.open,.modal-overlay.open").forEach(function(o){ if(o.id!==keep) o.classList.remove("open"); });
+    if(fsOn && !(history.state && (history.state.fs || history.state.overlay))) setFs(false);
+  });
+
+  /* ---- 全画面表示: ヘッダーと下のタブを隠す。右上の小さなボタンか「戻る」で元に戻す ---- */
+  var fsOn=false;
+  function setFs(on){
+    fsOn=on;
+    document.documentElement.classList.toggle("fs", on);
+    renderAll();
+  }
+  document.getElementById("fsBtn").addEventListener("click", function(){
+    if(fsOn) return;
+    try{ history.pushState({fs:true}, ""); }catch(e){}
+    setFs(true);
+  });
+  document.getElementById("fsExit").addEventListener("click", function(){
+    if(history.state && history.state.fs) history.back(); else setFs(false);
   });
   document.querySelectorAll(".overlay").forEach(function(o){
     o.addEventListener("click", function(e){ if(e.target===o) closeOverlay(o.id); });
@@ -2764,7 +3000,7 @@
   }
 
   // 再読み込みしたとき、前に開いていた画面の履歴が残っていても閉じた状態から始める
-  try{ if(history.state && history.state.overlay) history.replaceState(null, ""); }catch(e){}
+  try{ if(history.state && (history.state.overlay || history.state.fs)) history.replaceState(null, ""); }catch(e){}
   renderDowRows();
   applyStore();
   showLayout(currentLayout);
