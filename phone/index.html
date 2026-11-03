@@ -92,7 +92,15 @@
   html[data-layout="week"] #fsExpand{display:none;}
   /* 全画面拡張: カレンダを縦横とも約1.6倍にして、上下左右にスクロール */
   html.fsx #viewCal1,html.fsx #viewCal2{overflow:auto;}
-  html.fsx #cal1Wrap,html.fsx #cal2Wrap{width:160%;flex-shrink:0;touch-action:auto;}
+  /* 横幅は倍率に合わせて JS で指定。2本指の拡大縮小はアプリで行うので、ブラウザの拡大は止める */
+  html.fsx #viewCal1,html.fsx #viewCal2,html.fsx #cal1Wrap,html.fsx #cal2Wrap{touch-action:pan-x pan-y;}
+  html.fsx #cal1Wrap,html.fsx #cal2Wrap{flex-shrink:0;}
+  /* 全画面の月の帯は、通常のヘッダーと同じ色（黒っぽい下地に白字） */
+  .fs-bar{background:var(--header-bg);color:var(--header-fg);}
+  .fs-title{color:var(--cyan-soft);}
+  html[data-theme="accessibility"] .fs-title,html[data-theme="minimal"] .fs-title{color:#fff;}
+  html[data-theme="accessibility"] .fs-bar .hbtn,html[data-theme="minimal"] .fs-bar .hbtn{color:#fff;border-color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.12);box-shadow:none;}
+  html[data-theme="minimal"] .fs-bar{border-bottom:3px solid #1db9a1;}
   html.fsx #viewCal2 .cal-wrap{flex:none;}
   html.fsx .cal-wrap .cal-dow-row{position:sticky;top:0;z-index:2;background:var(--panel-solid);padding:2px 0;}
 
@@ -1440,7 +1448,13 @@
     document.getElementById("calTitle").textContent=text;
     document.getElementById("fsTitle").textContent=text;
   }
-  var FSX_SCALE=1.6; // 全画面拡張の倍率（縦横）
+  // 全画面拡張の倍率（縦横）。2本指で 1〜3倍の間で変えられ、最後の倍率を覚えておく
+  var FSX_MIN=1, FSX_MAX=3;
+  var fsxScale=Math.max(FSX_MIN, Math.min(FSX_MAX, parseFloat(lsGet(LS_PREFIX+"fsxScale"))||1.6));
+  var fsxBaseH={cal1:0, cal2:0}; // 倍率をかける前のマスの高さ（拡大縮小の途中で使う）
+  function applyFsxWidth(){
+    ["cal1Wrap","cal2Wrap"].forEach(function(id){ document.getElementById(id).style.width=fsxOn ? (fsxScale*100)+"%" : ""; });
+  }
   document.getElementById("foldDay").addEventListener("click", function(){ foldState.day=!foldState.day; renderCalendar(); });
   document.getElementById("foldTask").addEventListener("click", function(){ foldState.task=!foldState.task; renderCalendar(); });
 
@@ -1461,7 +1475,9 @@
     var rows1=rowsOf(calState.year, calState.month);
     var h1=Math.floor((mainH - lowerH - 24)/rows1) - 3;
     h1=Math.max(50, Math.min(260, h1));
-    if(fsxOn) h1=Math.round(h1*FSX_SCALE);
+    fsxBaseH.cal1=h1;
+    applyFsxWidth();
+    if(fsxOn) h1=Math.round(h1*fsxScale);
     renderMonthGrid(document.getElementById("cal1Grid"), calState.year, calState.month, h1, true);
     updateGlow();
   }
@@ -1476,7 +1492,9 @@
     var rows=Math.round((gridEnd-gridStart)/86400000+1)/7;
     document.getElementById("cal2Label").textContent=a.getFullYear()+"年"+MONTH_NAMES[a.getMonth()]+" ・ "+(b.getFullYear()!==a.getFullYear()?b.getFullYear()+"年":"")+MONTH_NAMES[b.getMonth()];
     var h=Math.max(34, Math.min(120, Math.floor((mainH-50)/rows) - 3));
-    if(fsxOn) h=Math.round(h*FSX_SCALE);
+    fsxBaseH.cal2=h;
+    applyFsxWidth();
+    if(fsxOn) h=Math.round(h*fsxScale);
     renderWeeksGrid(document.getElementById("cal2Grid"), gridStart, rows, h, false,
       function(d){ return d>=a && d<=lastB; });
   }
@@ -1850,7 +1868,7 @@
   ===================================================================== */
   var evDrag=null; // {ev, srcDate, node, ghost, offX, offY, target}
   function beginEvDrag(node, ev, srcDate, x, y){
-    if(evDrag) return;
+    if(evDrag || pinch) return; // 2本指で拡大縮小している間はドラッグを始めない
     var r=node.getBoundingClientRect();
     var ghost=node.cloneNode(true);
     ghost.removeAttribute("data-gday");
@@ -2726,6 +2744,41 @@
   document.getElementById("fsNext").addEventListener("click", function(){ shiftNav(1); });
   document.getElementById("fsTitle").addEventListener("click", openYmPicker);
   document.getElementById("fsExpand").innerHTML=ICON_ZOOM_IN;
+
+  // 全画面拡張中の2本指: 指の間隔に合わせて拡大／縮小（1〜3倍）。指の真ん中の位置がずれないようにスクロールも合わせる。
+  // 動かしている間は幅とマスの高さだけ変え、指を離したら描き直してマスに入る予定の数を計算し直す
+  var pinch=null;
+  function touchDist(ts){ return Math.hypot(ts[0].clientX-ts[1].clientX, ts[0].clientY-ts[1].clientY); }
+  function attachPinch(view, layout, wrapId, gridId){
+    view.addEventListener("touchstart", function(e){
+      if(!fsxOn || e.touches.length!==2) return;
+      var r=view.getBoundingClientRect();
+      pinch={d0:touchDist(e.touches), s0:fsxScale, sl:view.scrollLeft, st:view.scrollTop,
+        mx:(e.touches[0].clientX+e.touches[1].clientX)/2-r.left, my:(e.touches[0].clientY+e.touches[1].clientY)/2-r.top};
+    }, {passive:true});
+    view.addEventListener("touchmove", function(e){
+      if(!pinch || e.touches.length!==2) return;
+      e.preventDefault();
+      var s=Math.max(FSX_MIN, Math.min(FSX_MAX, pinch.s0*touchDist(e.touches)/pinch.d0));
+      fsxScale=s;
+      document.getElementById(wrapId).style.width=(s*100)+"%";
+      document.getElementById(gridId).style.setProperty("--cell-h", Math.round(fsxBaseH[layout]*s)+"px");
+      var k=s/pinch.s0;
+      view.scrollLeft=(pinch.sl+pinch.mx)*k-pinch.mx;
+      view.scrollTop=(pinch.st+pinch.my)*k-pinch.my;
+    }, {passive:false});
+    function end(e){
+      if(!pinch || e.touches.length>=2) return;
+      pinch=null;
+      lsSet(LS_PREFIX+"fsxScale", fsxScale.toFixed(2));
+      suppressTapUntil=Date.now()+400;
+      renderCalendar();
+    }
+    view.addEventListener("touchend", end);
+    view.addEventListener("touchcancel", end);
+  }
+  attachPinch(document.getElementById("viewCal1"), "cal1", "cal1Wrap", "cal1Grid");
+  attachPinch(document.getElementById("viewCal2"), "cal2", "cal2Wrap", "cal2Grid");
   document.getElementById("fsBtn").addEventListener("click", function(){
     if(fsOn) return;
     try{ history.pushState({fs:true}, ""); }catch(e){}
