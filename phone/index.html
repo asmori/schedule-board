@@ -80,13 +80,21 @@
   .hbtn.cal-pick{width:32px;min-width:32px;}
   html[data-view="task"] #fsBtn{display:none;}
 
-  /* 全画面表示: ヘッダーと下のタブを隠してカレンダを画面いっぱいに。右上の小さなボタンか「戻る」で元に戻す */
-  html.fs header,html.fs nav.tabbar,html.fs #dayScroll{display:none !important;}
-  .fs-exit{display:none;position:fixed;top:calc(env(safe-area-inset-top) + 3px);right:calc(env(safe-area-inset-right) + 3px);z-index:90;
-    width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:rgba(var(--panel-rgb),0.72);color:var(--text);
-    align-items:center;justify-content:center;padding:0;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
-  .fs-exit svg{width:18px;height:18px;}
-  html.fs .fs-exit{display:flex;}
+  /* 全画面表示: ヘッダー・下のタブ・流れる文字の帯を隠し、代わりに月の帯（‹ 年月 › と 拡張・終了ボタン）を出す。
+     「戻る」でも元に戻る。タスクボードでは流れる文字の帯を出さない */
+  html.fs header,html.fs nav.tabbar,html.fs #dayScroll,html.fs .alert-bar,html[data-view="task"] .alert-bar{display:none !important;}
+  .fs-bar{display:none;align-items:center;gap:4px;padding:3px 6px;flex-shrink:0;background:var(--panel-solid);border-bottom:1px solid var(--border);}
+  html.fs .fs-bar{display:flex;}
+  .fs-bar .hbtn{height:32px;min-width:32px;width:32px;padding:0;}
+  .fs-bar .hbtn svg{width:18px;height:18px;}
+  .fs-title{font-size:15px;font-weight:600;cursor:pointer;padding:0 6px;white-space:nowrap;}
+  .fs-bar .spacer{flex:1;}
+  html[data-layout="week"] #fsExpand{display:none;}
+  /* 全画面拡張: カレンダを縦横とも約1.6倍にして、上下左右にスクロール */
+  html.fsx #viewCal1,html.fsx #viewCal2{overflow:auto;}
+  html.fsx #cal1Wrap,html.fsx #cal2Wrap{width:160%;flex-shrink:0;touch-action:auto;}
+  html.fsx #viewCal2 .cal-wrap{flex:none;}
+  html.fsx .cal-wrap .cal-dow-row{position:sticky;top:0;z-index:2;background:var(--panel-solid);padding:2px 0;}
 
   /* 予定の長押しドラッグ（別の日付へ移動） */
   .cal-ev,.cal-chip,.wk-ev,.tl-ev{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;}
@@ -618,9 +626,16 @@
     </div>
   </header>
   <div class="alert-bar" id="alertBar"><div class="alert-track" id="alertTrack"></div></div>
-  <button class="fs-exit" id="fsExit" title="全画面表示を終了">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
-  </button>
+  <div class="fs-bar" id="fsBar">
+    <button class="hbtn nav" id="fsPrev">‹</button>
+    <span class="fs-title" id="fsTitle"></span>
+    <button class="hbtn nav" id="fsNext">›</button>
+    <span class="spacer"></span>
+    <button class="hbtn icon" id="fsExpand" title="全画面拡張"></button>
+    <button class="hbtn icon" id="fsExit" title="全画面表示を終了">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+    </button>
+  </div>
 
   <main>
     <!-- ============ レイアウト1: カレンダ＋1日の予定・タスク ============ -->
@@ -631,10 +646,10 @@
       </div>
       <div class="day-scroll" id="dayScroll">
         <div id="dayInner">
-          <div class="sec-h"><h2 id="dayTitle"></h2><span class="sub" id="daySub"></span>
+          <div class="sec-h" id="dayHead"><h2 id="dayTitle"></h2><span class="sub" id="daySub"></span>
             <button class="fold-btn" id="foldDay" title="内容の表示切替"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
           <div class="day-list" id="dayList"></div>
-          <div class="sec-h" style="margin-top:12px;"><span class="ttl">✅ この日が期限のタスク</span><span class="sub" id="dueSub"></span>
+          <div class="sec-h" id="dueHead" style="margin-top:12px;"><span class="ttl">✅ この日が期限のタスク</span><span class="sub" id="dueSub"></span>
             <button class="fold-btn" id="foldTask" title="内容の表示切替"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
           <div class="due-tasks" id="dueTasks"></div>
         </div>
@@ -698,6 +713,8 @@
     <h4>📅 レイアウト1の初期表示</h4>
     <div class="set-row"><span>「その日の予定」の内容を最初から表示する</span><button class="switch" id="expDaySwitch"></button></div>
     <div class="set-row"><span>「この日が期限のタスク」の内容を最初から表示する</span><button class="switch" id="expTaskSwitch"></button></div>
+    <div class="set-row"><span>画面下に「その日の予定」を表示する（オフで見出しごと隠す）</span><button class="switch" id="showDaySwitch"></button></div>
+    <div class="set-row"><span>画面下に「この日が期限のタスク」を表示する（オフで見出しごと隠す）</span><button class="switch" id="showTaskSwitch"></button></div>
 
     <h4>🖍 予定の色分けルール</h4>
     <p class="hint" style="margin-top:0;">予定の内容に文言が含まれていると、その色で表示します。上のルールが優先です（例:「事業部会」は「部会」より上に置く）。このスマホだけの設定です。</p>
@@ -925,7 +942,7 @@
       if(sx==null) return;
       var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
       sx=null;
-      if(tapSuppressed() || evDrag) return;
+      if(tapSuppressed() || evDrag || fsxOn) return; // 全画面拡張では横スクロールに使うので月送りしない
       if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5) fn(dx<0?1:-1);
     }, {passive:true});
   }
@@ -1405,33 +1422,47 @@
   var expandDayDefault=lsGet(LS_PREFIX+"expDay")==="1";
   var expandTaskDefault=lsGet(LS_PREFIX+"expTask")==="1";
   var foldState={day:expandDayDefault, task:expandTaskDefault};
+  // 設定で「画面下に表示しない」にした欄は見出しごと隠す
+  var showDaySec=lsGet(LS_PREFIX+"showDay")!=="0";
+  var showTaskSec=lsGet(LS_PREFIX+"showTask")!=="0";
   function applyFold(){
-    document.getElementById("dayList").hidden=!foldState.day;
-    document.getElementById("dueTasks").hidden=!foldState.task;
+    document.getElementById("dayHead").hidden=!showDaySec;
+    document.getElementById("dueHead").hidden=!showTaskSec;
+    document.getElementById("dayList").hidden=!showDaySec || !foldState.day;
+    document.getElementById("dueTasks").hidden=!showTaskSec || !foldState.task;
     document.getElementById("foldDay").classList.toggle("open", foldState.day);
     document.getElementById("foldTask").classList.toggle("open", foldState.task);
-    document.getElementById("dayScroll").classList.toggle("folded", !foldState.day && !foldState.task);
+    document.getElementById("dayScroll").hidden=!showDaySec && !showTaskSec;
+    document.getElementById("dayScroll").classList.toggle("folded", !anyLowerOpen());
   }
+  function anyLowerOpen(){ return (showDaySec && foldState.day) || (showTaskSec && foldState.task); }
+  function setCalTitle(text){
+    document.getElementById("calTitle").textContent=text;
+    document.getElementById("fsTitle").textContent=text;
+  }
+  var FSX_SCALE=1.6; // 全画面拡張の倍率（縦横）
   document.getElementById("foldDay").addEventListener("click", function(){ foldState.day=!foldState.day; renderCalendar(); });
   document.getElementById("foldTask").addEventListener("click", function(){ foldState.task=!foldState.task; renderCalendar(); });
 
   function renderCalendar(){
     if(currentLayout==="week"){ renderWeekView(); return; }
-    document.getElementById("calTitle").textContent=calState.year+"年"+MONTH_NAMES[calState.month];
+    setCalTitle(calState.year+"年"+MONTH_NAMES[calState.month]);
     var mainH=document.querySelector("main").clientHeight;
     if(currentLayout==="cal2"){
       renderTwoMonths(mainH);
       updateGlow();
       return;
     }
-    // レイアウト1: 内容をどちらも閉じているときは、見出し2行の分だけ残してカレンダを縦いっぱいに伸ばす。
-    // どちらかを開いたら、カレンダは画面の約6割
+    // レイアウト1: 内容をどちらも閉じているときは、見出しの分だけ残してカレンダを縦いっぱいに伸ばす。
+    // どちらかを開いたら、カレンダは画面の約6割。全画面・下の欄を両方隠す設定のときはカレンダだけ
     applyFold();
     renderDayPanel();
-    var lowerH=fsOn ? 0 : (foldState.day || foldState.task) ? Math.round(mainH*0.38) :document.getElementById("dayInner").offsetHeight+28; // + 見出しの上下の余白・枠の内側の余白
+    var lowerH=(fsOn || (!showDaySec && !showTaskSec)) ? 0 : anyLowerOpen() ? Math.round(mainH*0.38) : document.getElementById("dayInner").offsetHeight+28; // + 見出しの上下の余白・枠の内側の余白
     var rows1=rowsOf(calState.year, calState.month);
     var h1=Math.floor((mainH - lowerH - 24)/rows1) - 3;
-    renderMonthGrid(document.getElementById("cal1Grid"), calState.year, calState.month, Math.max(50, Math.min(260, h1)), true);
+    h1=Math.max(50, Math.min(260, h1));
+    if(fsxOn) h1=Math.round(h1*FSX_SCALE);
+    renderMonthGrid(document.getElementById("cal1Grid"), calState.year, calState.month, h1, true);
     updateGlow();
   }
 
@@ -1444,8 +1475,9 @@
     var gridEnd=new Date(lastB); gridEnd.setDate(lastB.getDate()+(6-lastB.getDay()));
     var rows=Math.round((gridEnd-gridStart)/86400000+1)/7;
     document.getElementById("cal2Label").textContent=a.getFullYear()+"年"+MONTH_NAMES[a.getMonth()]+" ・ "+(b.getFullYear()!==a.getFullYear()?b.getFullYear()+"年":"")+MONTH_NAMES[b.getMonth()];
-    var h=Math.floor((mainH-50)/rows) - 3;
-    renderWeeksGrid(document.getElementById("cal2Grid"), gridStart, rows, Math.max(34, Math.min(120, h)), false,
+    var h=Math.max(34, Math.min(120, Math.floor((mainH-50)/rows) - 3));
+    if(fsxOn) h=Math.round(h*FSX_SCALE);
+    renderWeeksGrid(document.getElementById("cal2Grid"), gridStart, rows, h, false,
       function(d){ return d>=a && d<=lastB; });
   }
 
@@ -1768,7 +1800,7 @@
   function renderWeekView(){
     var sel=new Date(selectedDayStr+"T00:00:00");
     calState={year:sel.getFullYear(), month:sel.getMonth()};
-    document.getElementById("calTitle").textContent=calState.year+"年"+MONTH_NAMES[calState.month];
+    setCalTitle(calState.year+"年"+MONTH_NAMES[calState.month]);
     renderWeek();
     var isToday=selectedDayStr===todayStr();
     document.getElementById("wkDayTitle").textContent=isToday ? "📌 今日の予定" : "📌 "+(sel.getMonth()+1)+"/"+sel.getDate()+"("+DOW_NAMES[sel.getDay()]+")の予定";
@@ -2621,6 +2653,7 @@
     lsSet(LS_PREFIX+"layout", layout);
     if(layout!=="board"){ lastCalLayout=layout; lsSet(LS_PREFIX+"calLayout", layout); }
     document.documentElement.dataset.view=layout==="board" ? "task" : "cal";
+    document.documentElement.dataset.layout=layout;
     document.querySelectorAll(".view").forEach(function(v){ v.classList.toggle("active", v.id===LAYOUT_VIEWS[layout]); });
     document.querySelectorAll(".tab").forEach(function(t){ t.classList.toggle("active", t.dataset.tab===(layout==="board"?"task":"cal")); });
     document.querySelectorAll(".layout-item").forEach(function(b){ b.classList.toggle("active", b.dataset.layout===layout); });
@@ -2666,12 +2699,33 @@
   });
 
   /* ---- 全画面表示: ヘッダーと下のタブを隠す。右上の小さなボタンか「戻る」で元に戻す ---- */
-  var fsOn=false;
+  var fsOn=false, fsxOn=false;
+  var ICON_ZOOM_IN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>';
+  var ICON_ZOOM_OUT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg>';
   function setFs(on){
     fsOn=on;
-    document.documentElement.classList.toggle("fs", on);
-    renderAll();
+    if(!on) fsxOn=false;
+    applyFsClasses();
   }
+  function applyFsClasses(){
+    document.documentElement.classList.toggle("fs", fsOn);
+    document.documentElement.classList.toggle("fsx", fsxOn);
+    var b=document.getElementById("fsExpand");
+    b.innerHTML=fsxOn ? ICON_ZOOM_OUT : ICON_ZOOM_IN;
+    b.title=fsxOn ? "全画面表示に戻す" : "全画面拡張（縦横に広げてスクロール）";
+    renderAll();
+    if(fsxOn) scrollSelectedIntoView();
+  }
+  // 全画面拡張に入ったら、選んでいる日が見えるところまでスクロールする
+  function scrollSelectedIntoView(){
+    var c=document.querySelector(".view.active .cal-cell.selected") || document.querySelector(".view.active .cal-cell.today");
+    if(c) c.scrollIntoView({block:"center", inline:"center"});
+  }
+  document.getElementById("fsExpand").addEventListener("click", function(){ fsxOn=!fsxOn; applyFsClasses(); });
+  document.getElementById("fsPrev").addEventListener("click", function(){ shiftNav(-1); });
+  document.getElementById("fsNext").addEventListener("click", function(){ shiftNav(1); });
+  document.getElementById("fsTitle").addEventListener("click", openYmPicker);
+  document.getElementById("fsExpand").innerHTML=ICON_ZOOM_IN;
   document.getElementById("fsBtn").addEventListener("click", function(){
     if(fsOn) return;
     try{ history.pushState({fs:true}, ""); }catch(e){}
@@ -2691,6 +2745,8 @@
     document.getElementById("glowSwitch").classList.toggle("on", glowOn);
     document.getElementById("expDaySwitch").classList.toggle("on", expandDayDefault);
     document.getElementById("expTaskSwitch").classList.toggle("on", expandTaskDefault);
+    document.getElementById("showDaySwitch").classList.toggle("on", showDaySec);
+    document.getElementById("showTaskSwitch").classList.toggle("on", showTaskSec);
   }
   document.getElementById("glowSwitch").addEventListener("click", function(){
     glowOn=!glowOn;
@@ -2703,6 +2759,18 @@
     expandDayDefault=!expandDayDefault;
     lsSet(LS_PREFIX+"expDay", expandDayDefault?"1":"0");
     foldState.day=expandDayDefault;
+    renderSwitches();
+    if(currentLayout==="cal1") renderCalendar();
+  });
+  document.getElementById("showDaySwitch").addEventListener("click", function(){
+    showDaySec=!showDaySec;
+    lsSet(LS_PREFIX+"showDay", showDaySec?"1":"0");
+    renderSwitches();
+    if(currentLayout==="cal1") renderCalendar();
+  });
+  document.getElementById("showTaskSwitch").addEventListener("click", function(){
+    showTaskSec=!showTaskSec;
+    lsSet(LS_PREFIX+"showTask", showTaskSec?"1":"0");
     renderSwitches();
     if(currentLayout==="cal1") renderCalendar();
   });
