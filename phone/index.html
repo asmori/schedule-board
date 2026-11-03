@@ -372,6 +372,9 @@
   .switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);transition:left .2s;}
   .switch.on{background:var(--cyan);border-color:var(--cyan);}
   .switch.on::after{left:25px;}
+  .switch:disabled{opacity:0.35;cursor:default;}
+  .set-row.sub-row{padding-left:16px;}
+  .set-row.locked span{opacity:0.5;}
   .rule-row{display:flex;gap:6px;align-items:center;padding:4px 0;}
   .rule-row .sw{width:8px;height:32px;border-radius:3px;flex-shrink:0;}
   .rule-row input{flex:1;min-width:0;background:var(--navy-900);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14.5px;padding:7px 8px;font-family:inherit;}
@@ -747,10 +750,11 @@
     <div class="set-row"><span>開始10分前と進行中の予定を発光させ、上の帯に文字を流す</span><button class="switch" id="glowSwitch"></button></div>
 
     <h4>📅 レイアウト1の初期表示</h4>
-    <div class="set-row"><span>「その日の予定」の内容を最初から表示する</span><button class="switch" id="expDaySwitch"></button></div>
-    <div class="set-row"><span>「この日が期限のタスク」の内容を最初から表示する</span><button class="switch" id="expTaskSwitch"></button></div>
+    <!-- 「画面下に表示する」がオフのときは、その下の「内容を最初から表示する」はオフに固定 -->
     <div class="set-row"><span>画面下に「その日の予定」を表示する（オフで見出しごと隠す）</span><button class="switch" id="showDaySwitch"></button></div>
+    <div class="set-row sub-row"><span>「その日の予定」の内容を最初から表示する</span><button class="switch" id="expDaySwitch"></button></div>
     <div class="set-row"><span>画面下に「この日が期限のタスク」を表示する（オフで見出しごと隠す）</span><button class="switch" id="showTaskSwitch"></button></div>
+    <div class="set-row sub-row"><span>「この日が期限のタスク」の内容を最初から表示する</span><button class="switch" id="expTaskSwitch"></button></div>
 
     <h4>🖍 予定の色分けルール</h4>
     <p class="hint" style="margin-top:0;">予定の内容に文言が含まれていると、その色で表示します。上のルールが優先です（例:「事業部会」は「部会」より上に置く）。このスマホだけの設定です。</p>
@@ -2900,11 +2904,21 @@
   /* ---- 設定: 発光 / レイアウト1の初期表示 / 予定の色分けルール ---- */
   function renderSwitches(){
     document.getElementById("glowSwitch").classList.toggle("on", glowOn);
-    document.getElementById("expDaySwitch").classList.toggle("on", expandDayDefault);
-    document.getElementById("expTaskSwitch").classList.toggle("on", expandTaskDefault);
     document.getElementById("showDaySwitch").classList.toggle("on", showDaySec);
     document.getElementById("showTaskSwitch").classList.toggle("on", showTaskSec);
+    [["expDaySwitch", expandDayDefault, showDaySec], ["expTaskSwitch", expandTaskDefault, showTaskSec]].forEach(function(s){
+      var b=document.getElementById(s[0]);
+      b.classList.toggle("on", s[1]);
+      b.disabled=!s[2]; // 画面下に表示しない欄は「内容を最初から表示」を選べない
+      b.parentNode.classList.toggle("locked", !s[2]);
+    });
   }
+  // 「画面下に表示する」をオフにしたら、その欄の「内容を最初から表示する」もオフにする
+  function lockExpandIfHidden(){
+    if(!showDaySec && expandDayDefault){ expandDayDefault=false; lsSet(LS_PREFIX+"expDay","0"); foldState.day=false; }
+    if(!showTaskSec && expandTaskDefault){ expandTaskDefault=false; lsSet(LS_PREFIX+"expTask","0"); foldState.task=false; }
+  }
+  lockExpandIfHidden();
   document.getElementById("glowSwitch").addEventListener("click", function(){
     glowOn=!glowOn;
     lsSet(LS_PREFIX+"glow", glowOn?"1":"0");
@@ -2922,12 +2936,14 @@
   document.getElementById("showDaySwitch").addEventListener("click", function(){
     showDaySec=!showDaySec;
     lsSet(LS_PREFIX+"showDay", showDaySec?"1":"0");
+    lockExpandIfHidden();
     renderSwitches();
     if(currentLayout==="cal1") renderCalendar();
   });
   document.getElementById("showTaskSwitch").addEventListener("click", function(){
     showTaskSec=!showTaskSec;
     lsSet(LS_PREFIX+"showTask", showTaskSec?"1":"0");
+    lockExpandIfHidden();
     renderSwitches();
     if(currentLayout==="cal1") renderCalendar();
   });
