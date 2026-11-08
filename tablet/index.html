@@ -135,9 +135,9 @@
 
   /* ---------- CALENDAR ---------- */
   #viewCal{gap:12px;}
-  /* レイアウト1: 左のカレンダを少し広く（もとは 2.3 : 1） */
-  #calPanel{flex:2.7;}
-  #dayPanel{flex:1;min-width:270px;}
+  /* レイアウト1: 左のカレンダを広く、右を狭く（2.3 : 1 → 2.7 : 1 → 3.3 : 1） */
+  #calPanel{flex:3.3;}
+  #dayPanel{flex:1;min-width:240px;}
   /* 全展開: 右側を隠してカレンダを横いっぱいに */
   html.cal-full[data-layout="cal1"] #dayPanel{display:none;}
   /* レイアウト2（2か月）は右側なし。レイアウト3（週間）は週間カレンダを左に大きく、右側の週間カレンダは出さない */
