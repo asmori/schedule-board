@@ -325,6 +325,18 @@
   .load-row .st{font-size:13px;color:var(--text-dim);text-align:right;}
   .load-row .st.ok{color:#4cd964;}
   .hint{font-size:13px;color:var(--text-dim);line-height:1.6;margin-top:12px;}
+  .drive-box{margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:10px;background:rgba(var(--accent-rgb),0.05);}
+  .drive-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;font-size:15px;}
+  .drive-head .sub{font-size:12.5px;color:var(--text-dim);}
+  #driveLoadBtn{width:100%;}
+  #driveSettings{margin-top:10px;font-size:13.5px;}
+  #driveSettings summary{cursor:pointer;color:var(--text-dim);padding:4px 0;}
+  .drive-field{display:block;margin-top:8px;font-size:12.5px;color:var(--text-dim);}
+  .drive-field input{display:block;width:100%;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid var(--border);
+    background:rgba(0,0,0,0.25);color:var(--text);font-size:14px;font-family:inherit;}
+  #driveQuickBtn{display:none;}
+  html.drive-ready #driveQuickBtn{display:inline-flex;}
+  #driveQuickBtn.busy{opacity:0.5;pointer-events:none;}
 
   .toast{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + 20px);transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;
     background:var(--panel-solid);border:1px solid var(--cyan);color:var(--cyan-soft);padding:10px 18px;border-radius:10px;font-size:14px;
@@ -468,6 +480,7 @@
       </div>
     </div>
     <button class="hbtn primary" id="loadBtn">📂<span class="lbl"> 読込</span></button>
+    <button class="hbtn primary" id="driveQuickBtn" title="Googleドライブから読み込む">☁<span class="lbl"> Drive</span></button>
     <button class="hbtn" id="compactBtn" title="コンパクト表示（今日の予定だけ）">▭<span class="lbl"> コンパクト</span></button>
     <button class="hbtn" id="fsBtn" title="全画面">⛶</button>
     <div class="today-badge" id="todayBadge"></div>
@@ -551,9 +564,27 @@
     <div class="sheet-grip"></div>
     <h3>データの読み込み</h3>
     <div id="loadRows"></div>
+    <!-- Googleドライブの指定フォルダからまとめて読み込む（アプリ版＝https のときだけ使える） -->
+    <div class="drive-box" id="driveBox">
+      <div class="drive-head"><b>☁ Googleドライブ</b><span class="sub" id="driveStatus"></span></div>
+      <button class="hbtn primary" id="driveLoadBtn">☁ Driveから読み込む</button>
+      <details id="driveSettings">
+        <summary>Drive連携の設定</summary>
+        <label class="drive-field">クライアントID（Google Cloud で作ったもの）
+          <input type="text" id="driveClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="drive-field">読み込むフォルダのURL（Googleドライブでフォルダを開いたときのアドレス）
+          <input type="text" id="driveFolder" placeholder="https://drive.google.com/drive/folders/..." autocomplete="off" spellcheck="false">
+        </label>
+        <div class="sheet-actions" style="margin-top:8px;">
+          <button class="hbtn" id="driveSignOut">ログイン情報を消す</button>
+          <button class="hbtn primary" id="driveSave">保存</button>
+        </div>
+      </details>
+    </div>
     <div class="sheet-actions">
       <button class="hbtn" id="loadClose">閉じる</button>
-      <button class="hbtn primary" id="loadPick">📂 ファイルを選ぶ</button>
+      <button class="hbtn" id="loadPick">📂 ファイルを選ぶ</button>
     </div>
     <p class="hint">
       PCの <b>schedule.mw</b>・<b>taskList.md</b>・ロードマップ(.mw)・AI秘書の巡回ログ(<b>巡回_〜.txt</b>) を Googleドライブなどに置き、ここから選んでください。複数まとめて選択できます。巡回ログを複数選んだ場合は、いちばん新しいものを使います。<br>
@@ -936,27 +967,6 @@
   ===================================================================== */
   var calState={year:new Date().getFullYear(), month:new Date().getMonth()};
   var selectedDayStr=todayStr();
-  // ウィンドウの大きさを変えたときにページが読み直されても、選択中の日付を保つ（同じ日のうちだけ）
-  try{
-    var savedDay=JSON.parse(sessionStorage.getItem(LS_PREFIX+"selectedDay")||"null");
-    if(savedDay && savedDay.on===todayStr()){
-      selectedDayStr=savedDay.day;
-      var savedDate=new Date(savedDay.day+"T00:00:00");
-      calState={year:savedDate.getFullYear(), month:savedDate.getMonth()};
-    }
-  }catch(e){}
-  // PCの小窓は開くときのアドレス（#compact=日付）で選択中の日付を受け取る
-  function setDayFromHash(){
-    var m=location.hash.match(/^#compact=(\d{4}-\d{2}-\d{2})$/);
-    if(!m) return false;
-    selectedDayStr=m[1];
-    var hashDate=new Date(m[1]+"T00:00:00");
-    calState={year:hashDate.getFullYear(), month:hashDate.getMonth()};
-    return true;
-  }
-  setDayFromHash();
-  // 小窓が開いたままでも、元の画面でコンパクトを押し直せば日付を更新する
-  window.addEventListener("hashchange", function(){ if(setDayFromHash()) renderDayPanel(); });
 
   function sameYMD(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
   function nthMondayOfMonth(year, month, n){
@@ -1090,20 +1100,14 @@
   }
 
   // 右側パネル: 週間カレンダ → 今日の予定(時間軸) → この日が期限のタスク
-  // 週間カレンダと期限タスクは選択中の日付。時間軸の予定はコンパクトのときだけ今日に固定する
-  function timelineDay(){
-    return document.documentElement.classList.contains("compact") ? todayStr() : selectedDayStr;
-  }
   function renderDayPanel(){
-    try{ sessionStorage.setItem(LS_PREFIX+"selectedDay", JSON.stringify({day:selectedDayStr, on:todayStr()})); }catch(e){}
     renderWeek();
-    var tlDay=timelineDay();
-    var d=new Date(tlDay+"T00:00:00");
-    var isToday=tlDay===todayStr();
+    var d=new Date(selectedDayStr+"T00:00:00");
+    var isToday=selectedDayStr===todayStr();
     document.getElementById("dayTitle").textContent=isToday ? "📌 今日の予定" : "📌 "+(d.getMonth()+1)+"/"+d.getDate()+"("+DOW_NAMES[d.getDay()]+")の予定";
     var list=document.getElementById("dayList");
     clearChildren(list);
-    var evs=eventsByDate[tlDay]||[];
+    var evs=eventsByDate[selectedDayStr]||[];
     document.getElementById("daySub").textContent=evs.length ? evs.length+"件" : "";
 
     if(!store.schedule){
@@ -1112,7 +1116,7 @@
     }else if(!evs.length){
       list.appendChild(el("div","empty","予定はありません"));
     }else{
-      renderTimeline(list, tlDay, evs);
+      renderTimeline(list, selectedDayStr, evs);
     }
 
     var due=document.getElementById("dueTasks");
@@ -1127,9 +1131,7 @@
   var SCHED_DOT={"sched-red":"#ff4d6d","sched-cyan":"#2fe4ff","sched-yellow":"#ffd84d","sched-darkgray":"#7a8a99",
                  "sched-green":"#4cd964","sched-purple":"#b07dff","sched-orange":"#ff9f43"};
 
-  // 選択日を含む週（日曜はじまり）の7日＋その月のミニカレンダを2列で並べる。
-  // 左列は上から 日・月・火・土、右列は 水・木・金・ミニカレンダ（グリッドは行ごとに埋まるので左右交互に置く）
-  var WEEK_CELL_ORDER=[0,3,1,4,2,5,6];
+  // 選択日を含む週（日曜はじまり）の7日＋その月のミニカレンダを2列で並べる
   function renderWeek(){
     var grid=document.getElementById("weekGrid");
     clearChildren(grid);
@@ -1138,8 +1140,8 @@
     var end=new Date(start); end.setDate(start.getDate()+6);
     document.getElementById("weekSub").textContent=(start.getMonth()+1)+"/"+start.getDate()+" 〜 "+(end.getMonth()+1)+"/"+end.getDate();
     var todayS=todayStr();
-    WEEK_CELL_ORDER.forEach(function(offset){
-      var d=new Date(start); d.setDate(start.getDate()+offset);
+    for(var i=0;i<7;i++){
+      var d=new Date(start); d.setDate(start.getDate()+i);
       var ds=fmtDate(d);
       var cell=el("div","wk-cell "+dayClasses(d, ds).join(" "));
       if(ds===todayS) cell.classList.add("today");
@@ -1161,9 +1163,9 @@
         cell.appendChild(row);
       });
       if(evs.length>limit) cell.appendChild(el("div","wk-more","+"+(evs.length-limit)+"件"));
-      cell.addEventListener("click", function(){ selectDay(ds); });
+      cell.addEventListener("click", (function(ds){ return function(){ selectDay(ds); }; })(ds));
       grid.appendChild(cell);
-    });
+    }
     grid.appendChild(renderMiniMonth(sel.getFullYear(), sel.getMonth()));
   }
 
@@ -1282,7 +1284,7 @@
   // PC版と同じ判定: 開始20分前=緑(upcoming) > 次の予定=黄(next) > 時間中=赤(ongoing) > 終了=淡色(done)
   function updateTodayListRowStates(){
     var rows=document.querySelectorAll("#dayList .day-event");
-    var isToday=(timelineDay()===todayStr());
+    var isToday=(selectedDayStr===todayStr());
     var now=new Date();
     var nextRow=null, nextStartMs=Infinity;
     if(isToday){
@@ -1739,6 +1741,168 @@
     handleFiles(files).then(function(){ e.target.value=""; });
   });
 
+  /* =====================================================================
+     GOOGLE DRIVE: 指定フォルダの schedule.mw / taskList.md / ロードマップ(.mw) / 最新の巡回ログ をまとめて読み込む。
+     Google のログイン（Google Identity Services）で読み取り専用の許可をもらい、Drive API から直接取得する。
+     データは Google → このタブレットに直接届く（ほかのサーバーは通らない）。アプリ版（https）でだけ使える。
+  ===================================================================== */
+  var DRIVE_SCOPE="https://www.googleapis.com/auth/drive.readonly";
+  var DRIVE_AUTO_INTERVAL=5*60*1000; // 画面に戻ったときの自動読込は5分に1回まで
+  var driveTokenClient=null, driveBusy=false;
+  function driveCfg(){ return {clientId:(lsGet(LS_PREFIX+"driveClientId")||"").trim(), folder:(lsGet(LS_PREFIX+"driveFolder")||"").trim()}; }
+  function driveFolderId(v){
+    var m=v.match(/folders\/([\w-]+)/) || v.match(/[?&]id=([\w-]+)/);
+    if(m) return m[1];
+    return /^[\w-]{10,}$/.test(v) ? v : "";
+  }
+  function driveSupported(){
+    return location.protocol==="https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  }
+  function driveConfigured(){ var c=driveCfg(); return !!(c.clientId && driveFolderId(c.folder)); }
+  function driveSavedToken(){
+    try{
+      var t=JSON.parse(lsGet(LS_PREFIX+"driveToken")||"null");
+      return (t && t.exp>Date.now()) ? t.token : null;
+    }catch(e){ return null; }
+  }
+  function updateDriveUi(msg){
+    var ok=driveSupported() && driveConfigured();
+    document.documentElement.classList.toggle("drive-ready", ok);
+    var last=parseInt(lsGet(LS_PREFIX+"driveLast"),10);
+    document.getElementById("driveStatus").textContent=msg ||
+      (!driveSupported() ? "アプリ版（https のページ）でだけ使えます"
+        : !driveConfigured() ? "下の「Drive連携の設定」を入力してください"
+        : (last ? "最終取得 "+fmtStamp(last) : "未取得"));
+    document.getElementById("driveLoadBtn").disabled=!ok || driveBusy;
+    document.getElementById("driveQuickBtn").classList.toggle("busy", driveBusy);
+  }
+
+  // Google のログイン部品を読み込み、許可を求める準備をしておく（ボタンを押した瞬間にすぐ許可画面を出すため）
+  function prepareDriveAuth(){
+    if(!driveSupported() || !driveConfigured() || driveTokenClient) return Promise.resolve();
+    return new Promise(function(resolve){
+      function init(){
+        try{
+          driveTokenClient=google.accounts.oauth2.initTokenClient({client_id:driveCfg().clientId, scope:DRIVE_SCOPE, callback:function(){}});
+        }catch(e){ driveTokenClient=null; }
+        resolve();
+      }
+      if(window.google && google.accounts && google.accounts.oauth2){ init(); return; }
+      var s=document.createElement("script");
+      s.src="https://accounts.google.com/gsi/client";
+      s.async=true;
+      s.onload=init;
+      s.onerror=function(){ resolve(); };
+      document.head.appendChild(s);
+    });
+  }
+  // ボタンを押したときに呼ぶ。保存済みの許可が有効ならそれを使い、なければ Google の許可画面を出す
+  function requestDriveToken(){
+    var saved=driveSavedToken();
+    if(saved) return Promise.resolve(saved);
+    if(!driveTokenClient) return Promise.reject(new Error("auth-not-ready"));
+    return new Promise(function(resolve, reject){
+      driveTokenClient.callback=function(resp){
+        if(!resp || resp.error || !resp.access_token){ reject(new Error(resp && resp.error || "auth")); return; }
+        lsSet(LS_PREFIX+"driveToken", JSON.stringify({token:resp.access_token, exp:Date.now()+((+resp.expires_in||3600)-60)*1000}));
+        lsSet(LS_PREFIX+"driveConsented","1");
+        resolve(resp.access_token);
+      };
+      driveTokenClient.error_callback=function(err){ reject(new Error(err && err.type || "auth")); };
+      driveTokenClient.requestAccessToken({prompt: lsGet(LS_PREFIX+"driveConsented")==="1" ? "" : "consent"});
+    });
+  }
+  async function driveFetch(url, token){
+    var res=await fetch(url, {headers:{Authorization:"Bearer "+token}});
+    if(res.status===401){ lsSet(LS_PREFIX+"driveToken",""); throw new Error("expired"); }
+    if(!res.ok) throw new Error("http-"+res.status);
+    return res;
+  }
+  // 読み込み対象: .mw と .md はすべて、巡回ログ(.txt)は名前がいちばん新しい1件だけ
+  function pickDriveFiles(list){
+    var picked=list.filter(function(f){ return /\.(mw|md)$/i.test(f.name); });
+    var patrol=list.filter(function(f){ return /巡回.*\.txt$/i.test(f.name); }).sort(function(a,b){ return a.name<b.name?1:-1; })[0];
+    if(patrol) picked.push(patrol);
+    return picked;
+  }
+  async function syncFromDrive(token){
+    driveBusy=true; updateDriveUi("読み込み中…");
+    try{
+      var folderId=driveFolderId(driveCfg().folder);
+      var q=encodeURIComponent("'"+folderId+"' in parents and trashed=false");
+      var listRes=await driveFetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name,modifiedTime)&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true", token);
+      var list=(await listRes.json()).files||[];
+      var targets=pickDriveFiles(list);
+      if(!targets.length){ showToast("フォルダに schedule.mw などのファイルが見つかりませんでした"); return; }
+      var files=[];
+      for(var i=0;i<targets.length;i++){
+        var f=targets[i];
+        var res=await driveFetch("https://www.googleapis.com/drive/v3/files/"+f.id+"?alt=media&supportsAllDrives=true", token);
+        files.push(new File([await res.text()], f.name, {type:"text/plain", lastModified:Date.parse(f.modifiedTime)||Date.now()}));
+      }
+      await handleFiles(files);
+      lsSet(LS_PREFIX+"driveLast", String(Date.now()));
+    }catch(e){
+      var m=String(e && e.message);
+      showToast(m==="expired" ? "Googleのログインが切れました。もう一度 ☁ を押してください"
+        : (m==="http-404" || m==="http-403") ? "フォルダを開けませんでした（URLとアクセス権を確認してください）"
+        : "Driveから読み込めませんでした（"+m+"）");
+    }finally{
+      driveBusy=false; updateDriveUi();
+    }
+  }
+  async function driveLoadClicked(){
+    if(!driveSupported()){ showToast("Drive連携はアプリ版（https のページ）でだけ使えます"); return; }
+    if(!driveConfigured()){ renderLoadRows(); openOverlay("loadSheet"); document.getElementById("driveSettings").open=true; return; }
+    if(driveBusy) return;
+    var token;
+    try{ token=await requestDriveToken(); }
+    catch(e){
+      var m=String(e && e.message);
+      if(m==="auth-not-ready"){ prepareDriveAuth(); showToast("Googleのログイン準備中です。数秒後にもう一度押してください"); }
+      else if(m!=="popup_closed") showToast("Googleの許可が得られませんでした（"+m+"）");
+      return;
+    }
+    syncFromDrive(token);
+  }
+  document.getElementById("driveLoadBtn").addEventListener("click", driveLoadClicked);
+  document.getElementById("driveQuickBtn").addEventListener("click", driveLoadClicked);
+  document.getElementById("driveSave").addEventListener("click", function(){
+    var id=document.getElementById("driveClientId").value.trim();
+    var folder=document.getElementById("driveFolder").value.trim();
+    if(folder && !driveFolderId(folder)){ showToast("フォルダのURLを読み取れませんでした"); return; }
+    if(id!==driveCfg().clientId){ driveTokenClient=null; lsSet(LS_PREFIX+"driveToken",""); lsSet(LS_PREFIX+"driveConsented",""); }
+    lsSet(LS_PREFIX+"driveClientId", id);
+    lsSet(LS_PREFIX+"driveFolder", folder);
+    document.getElementById("driveSettings").open=false;
+    updateDriveUi();
+    prepareDriveAuth();
+    showToast("Drive連携の設定を保存しました");
+  });
+  document.getElementById("driveSignOut").addEventListener("click", function(){
+    var t=driveSavedToken();
+    if(t && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(t, function(){});
+    lsSet(LS_PREFIX+"driveToken",""); lsSet(LS_PREFIX+"driveConsented","");
+    showToast("Googleのログイン情報を消しました");
+    updateDriveUi();
+  });
+  (function(){
+    var c=driveCfg();
+    document.getElementById("driveClientId").value=c.clientId;
+    document.getElementById("driveFolder").value=c.folder;
+    updateDriveUi();
+    prepareDriveAuth();
+    // 起動時・画面に戻ったとき: 許可がまだ有効なら自動で読み込む（切れていたら ☁ を押すだけ）
+    function autoSync(){
+      if(!driveSupported() || !driveConfigured() || driveBusy) return;
+      var token=driveSavedToken();
+      var last=parseInt(lsGet(LS_PREFIX+"driveLast"),10)||0;
+      if(token && Date.now()-last>DRIVE_AUTO_INTERVAL) syncFromDrive(token);
+    }
+    setTimeout(autoSync, 800);
+    document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") autoSync(); });
+  })();
+
   document.getElementById("calPrev").addEventListener("click", function(){ shiftMonth(-1); });
   document.getElementById("calNext").addEventListener("click", function(){ shiftMonth(1); });
   document.getElementById("calToday").addEventListener("click", function(){
@@ -2036,7 +2200,7 @@
      COMPACT MODE: 今日の予定だけ。フローティングウィンドウ/分割画面で小さくすると自動で切替。
      PCのChromeではボタンで縦長の小窓（#compact）を開く
   ===================================================================== */
-  var IS_POPUP=/^#compact/.test(location.hash);
+  var IS_POPUP=location.hash==="#compact";
   var compactManual=IS_POPUP || lsGet(LS_PREFIX+"compact")==="1";
   var compactForcedFull=false; // 小さいウィンドウで「全体表示」を選んだとき
   // タブレット（タッチ操作）では小窓を開けないので、ページ内の切替にする
@@ -2054,14 +2218,18 @@
     btn.title=on ? "全体表示に戻す" : "コンパクト表示（今日の予定だけ）";
     btn.firstChild.textContent=on ? "⤢" : "▭";
     btn.querySelector(".lbl").textContent=on ? " 全体" : " コンパクト";
-    if(on && !was) renderDayPanel(); // 選択中の日付はそのまま引き継ぐ
+    if(on && !was){
+      selectedDayStr=todayStr();
+      var d=new Date(); calState={year:d.getFullYear(), month:d.getMonth()};
+      renderDayPanel();
+    }
     if(!on && was) showView(currentView);
     else refreshMarquees(true);
   }
   document.getElementById("compactBtn").addEventListener("click", function(){
     if(IS_POPUP){ window.close(); return; } // 小窓の「全体」= 小窓を閉じて元の画面へ
     if(!isCompact() && isDesktop()){
-      var w=window.open(location.href.split("#")[0]+"#compact="+selectedDayStr, "skbtCompact", "popup=yes,width=420,height=760");
+      var w=window.open(location.href.split("#")[0]+"#compact", "skbtCompact", "popup=yes,width=420,height=760");
       if(w){ w.focus(); return; }
       // ポップアップがブロックされたときはページ内で切り替える
     }
