@@ -347,6 +347,23 @@
   .load-row .st{font-size:12px;color:var(--text-dim);text-align:right;white-space:pre-line;}
   .load-row .st.ok{color:#4cd964;}
   .load-row .st .dirty{color:var(--amber);font-weight:600;}
+  /* Googleドライブ（タブレット版と同じ: 指定フォルダの schedule.mw / taskList.md を読み書き） */
+  .drive-box{margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:10px;background:rgba(var(--accent-rgb),0.05);}
+  .drive-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;font-size:14.5px;flex-wrap:wrap;}
+  .drive-head .sub{font-size:12px;color:var(--text-dim);}
+  #driveLoadBtn{width:100%;height:46px;}
+  #driveSettings{margin-top:10px;font-size:13.5px;}
+  #driveSettings summary{cursor:pointer;color:var(--text-dim);padding:4px 0;}
+  .drive-field{display:block;margin-top:8px;font-size:12.5px;color:var(--text-dim);}
+  .drive-field input{display:block;width:100%;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid var(--border);
+    background:var(--navy-900);color:var(--text);font-size:14px;font-family:inherit;}
+  #driveQuickBtn{display:none;font-size:18px;}
+  html.drive-ready #driveQuickBtn{display:inline-flex;}
+  /* ☁ が増えた分、年月が「…」にならないようにアイコンと間隔を少し詰める */
+  html.drive-ready header{gap:3px;padding-left:6px;padding-right:6px;}
+  html.drive-ready header .hbtn.icon{width:32px;min-width:32px;}
+  html.drive-ready header .hbtn.cal-pick{width:30px;min-width:30px;}
+  #driveQuickBtn.busy{opacity:0.5;pointer-events:none;}
   .hint{font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-top:10px;}
   .btn-col{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
   .btn-col .hbtn{width:100%;justify-content:flex-start;padding:0 14px;height:46px;}
@@ -641,6 +658,7 @@
     <button class="hbtn icon" id="layoutBtn" title="レイアウト切替">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
     </button>
+    <button class="hbtn icon" id="driveQuickBtn" title="Googleドライブと同期（変更を保存して最新を読み込む）">☁<span class="dirty-dot"></span></button>
     <button class="hbtn icon primary" id="settingsBtn" title="設定">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span class="dirty-dot"></span>
@@ -735,14 +753,32 @@
 
     <h4>📂 データ（フォルダ選択）</h4>
     <div id="loadRows"></div>
+    <!-- Googleドライブの指定フォルダの schedule.mw / taskList.md を読み書きする（https で公開したときだけ使える） -->
+    <div class="drive-box" id="driveBox">
+      <div class="drive-head"><b>☁ Googleドライブ</b><span class="sub" id="driveStatus"></span></div>
+      <button class="hbtn primary" id="driveLoadBtn">☁ Driveと同期（保存して最新を読み込む）</button>
+      <details id="driveSettings">
+        <summary>Drive連携の設定（タブレット版と同じものを入力）</summary>
+        <label class="drive-field">クライアントID（Google Cloud で作ったもの）
+          <input type="text" id="driveClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="drive-field">読み込むフォルダのURL（Googleドライブでフォルダを開いたときのアドレス）
+          <input type="text" id="driveFolder" placeholder="https://drive.google.com/drive/folders/..." autocomplete="off" spellcheck="false">
+        </label>
+        <div class="sheet-actions" style="margin-top:8px;">
+          <button class="hbtn" id="driveSignOut">ログイン情報を消す</button>
+          <button class="hbtn primary" id="driveSave">保存</button>
+        </div>
+      </details>
+    </div>
     <div class="btn-col">
       <button class="hbtn primary" id="loadPick">📂 ファイルを選ぶ（schedule.mw / taskList.md）</button>
       <button class="hbtn" id="exportSchedule">💾 schedule.mw を書き出す</button>
       <button class="hbtn" id="exportTasks">💾 taskList.md を書き出す</button>
     </div>
     <p class="hint">
-      PCの schedule.mw・taskList.md を Googleドライブなどに置き、「ファイルを選ぶ」から読み込みます（2つまとめて選択できます）。<br>
-      スマホで登録・変更した内容はスマホ内に保存されます。PCに戻すときは「書き出す」でダウンロードし、Googleドライブ経由でPCの元のファイルと差し替えてください。<br>
+      Drive連携を設定すると、☁ でDriveのフォルダの schedule.mw・taskList.md を読み込み、スマホで変更した内容は数秒後に同じファイルへ上書き保存します（保存前にDrive側がPCやタブレットで更新されていたら、上書きしてよいか確認します）。<br>
+      Drive連携を使わないときは「ファイルを選ぶ」で読み込み、「書き出す」でダウンロードしてPCの元のファイルと差し替えてください。<br>
       ※PCで同じファイルを編集したあとにスマホの書き出しで差し替えると、PC側の変更が消えます。差し替える前に、スマホで最新のファイルを読み込んでから編集してください。
     </p>
 
@@ -1202,6 +1238,7 @@
     store[kind].editedAt=Date.now();
     persist(kind);
     updateDirtyMark();
+    scheduleDriveSave(); // Drive連携しているときは、少し待って Drive に上書き保存する
   }
   function saveScheduleEvents(){
     markEdited("schedule", buildScheduleMW(scheduleEvents));
@@ -1247,7 +1284,8 @@
     if(lost.length && !confirm(lost.join("・")+" に書き出していない変更があります。\n読み込むとスマホでの変更は消えます。読み込みますか？")) return;
     var loaded=[];
     picked.forEach(function(p){
-      store[p.kind]={text:p.text, name:p.file.name, loadedAt:Date.now(), modifiedAt:p.file.lastModified||null, dirty:false};
+      store[p.kind]={text:p.text, name:p.file.name, loadedAt:Date.now(), modifiedAt:p.file.lastModified||null, dirty:false,
+                     driveId:p.file.driveId||null, driveModified:p.file.driveModified||null};
       persist(p.kind);
       loaded.push(p.file.name);
     });
@@ -1262,7 +1300,7 @@
     var s=store[kind];
     if(!s){ showToast(KINDS[kind].file+" が未読込です"); return; }
     downloadText(s.name||KINDS[kind].file, s.text);
-    s.dirty=false;
+    if(!(driveSupported() && driveConfigured())) s.dirty=false; // Drive連携中は Drive に保存するまで未保存のまま
     s.exportedAt=Date.now();
     persist(kind);
     updateDirtyMark();
@@ -1282,7 +1320,9 @@
   function updateDirtyMark(){
     var dirty=Object.keys(store).some(function(k){ return store[k] && store[k].dirty; });
     document.getElementById("settingsBtn").classList.toggle("dirty", dirty);
+    document.getElementById("driveQuickBtn").classList.toggle("dirty", dirty);
   }
+  function dirtyKinds(){ return Object.keys(store).filter(function(k){ return store[k] && store[k].dirty; }); }
   function renderLoadRows(){
     var wrap=document.getElementById("loadRows");
     clearChildren(wrap);
@@ -1291,7 +1331,8 @@
       row.appendChild(el("div","name",KINDS[k].label+" ("+KINDS[k].file+")"));
       var s=store[k];
       var st=el("div","st"+(s?" ok":""), s ? ("✓ "+s.name+"\n読込 "+fmtStamp(s.loadedAt)+(s.modifiedAt?"／更新 "+fmtStamp(s.modifiedAt):"")) : "未読込");
-      if(s && s.dirty){ st.appendChild(document.createTextNode("\n")); st.appendChild(el("span","dirty","● 未書き出しの変更あり（"+fmtStamp(s.editedAt)+"）")); }
+      if(s && s.dirty){ st.appendChild(document.createTextNode("\n")); st.appendChild(el("span","dirty","● 未保存の変更あり（"+fmtStamp(s.editedAt)+"）")); }
+      else if(s && s.savedAt){ st.appendChild(document.createTextNode("\nDrive保存 "+fmtStamp(s.savedAt))); }
       else if(s && s.exportedAt){ st.appendChild(document.createTextNode("\n書き出し "+fmtStamp(s.exportedAt))); }
       row.appendChild(st);
       wrap.appendChild(row);
@@ -3201,6 +3242,237 @@
   });
   // 着せ替えを選んだことがなければ「3. ミニマリズム」（""=標準を選んだ場合はそのまま）
   (function(saved){ applyTheme(saved===null ? "minimal" : saved); })(lsGet(LS_PREFIX+"theme"));
+
+  /* =====================================================================
+     GOOGLE DRIVE（タブレット版と同じ）: 指定フォルダの schedule.mw / taskList.md を読み込み、
+     スマホで変更したら同じファイルへ上書き保存する。Google のログインで「編集」の許可をもらい、Drive API で直接やりとりする
+     （データは Google ⇔ このスマホの間だけ。https で公開したときだけ使える）
+  ===================================================================== */
+  var DRIVE_SCOPE="https://www.googleapis.com/auth/drive";
+  var DRIVE_AUTO_INTERVAL=5*60*1000; // 画面に戻ったときの自動同期は5分に1回まで（未保存の変更があるときはすぐ）
+  var DRIVE_SAVE_DELAY=3000;         // 編集してから Drive に保存するまでの待ち
+  var driveTokenClient=null, driveBusy=false, driveSaveTimer=null;
+  if(lsGet(LS_PREFIX+"driveScope")!==DRIVE_SCOPE){
+    lsSet(LS_PREFIX+"driveToken",""); lsSet(LS_PREFIX+"driveConsented","");
+    lsSet(LS_PREFIX+"driveScope", DRIVE_SCOPE);
+  }
+  function driveCfg(){ return {clientId:(lsGet(LS_PREFIX+"driveClientId")||"").trim(), folder:(lsGet(LS_PREFIX+"driveFolder")||"").trim()}; }
+  function driveFolderId(v){
+    var m=v.match(/folders\/([\w-]+)/) || v.match(/[?&]id=([\w-]+)/);
+    if(m) return m[1];
+    return /^[\w-]{10,}$/.test(v) ? v : "";
+  }
+  function driveSupported(){ return location.protocol==="https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname); }
+  function driveConfigured(){ var c=driveCfg(); return !!(c.clientId && driveFolderId(c.folder)); }
+  function driveSavedToken(){
+    try{ var t=JSON.parse(lsGet(LS_PREFIX+"driveToken")||"null"); return (t && t.exp>Date.now()) ? t.token : null; }catch(e){ return null; }
+  }
+  function updateDriveUi(msg){
+    var ok=driveSupported() && driveConfigured();
+    document.documentElement.classList.toggle("drive-ready", ok);
+    var last=parseInt(lsGet(LS_PREFIX+"driveLast"),10);
+    document.getElementById("driveStatus").textContent=msg ||
+      (!driveSupported() ? "https で公開したページでだけ使えます"
+        : !driveConfigured() ? "下の「Drive連携の設定」を入力してください"
+        : (last ? "最終同期 "+fmtStamp(last) : "未同期"));
+    document.getElementById("driveLoadBtn").disabled=!ok || driveBusy;
+    document.getElementById("driveQuickBtn").classList.toggle("busy", driveBusy);
+  }
+  // Google のログイン部品を先に読み込んでおく（ボタンを押した瞬間に許可画面を出すため）
+  function prepareDriveAuth(){
+    if(!driveSupported() || !driveConfigured() || driveTokenClient) return;
+    function init(){
+      try{ driveTokenClient=google.accounts.oauth2.initTokenClient({client_id:driveCfg().clientId, scope:DRIVE_SCOPE, callback:function(){}}); }
+      catch(e){ driveTokenClient=null; }
+    }
+    if(window.google && google.accounts && google.accounts.oauth2){ init(); return; }
+    var s=document.createElement("script");
+    s.src="https://accounts.google.com/gsi/client"; s.async=true; s.onload=init;
+    document.head.appendChild(s);
+  }
+  function requestDriveToken(){
+    var saved=driveSavedToken();
+    if(saved) return Promise.resolve(saved);
+    if(!driveTokenClient) return Promise.reject(new Error("auth-not-ready"));
+    return new Promise(function(resolve, reject){
+      driveTokenClient.callback=function(resp){
+        if(!resp || resp.error || !resp.access_token){ reject(new Error(resp && resp.error || "auth")); return; }
+        lsSet(LS_PREFIX+"driveToken", JSON.stringify({token:resp.access_token, exp:Date.now()+((+resp.expires_in||3600)-60)*1000}));
+        lsSet(LS_PREFIX+"driveConsented","1");
+        resolve(resp.access_token);
+      };
+      driveTokenClient.error_callback=function(err){ reject(new Error(err && err.type || "auth")); };
+      driveTokenClient.requestAccessToken({prompt: lsGet(LS_PREFIX+"driveConsented")==="1" ? "" : "consent"});
+    });
+  }
+  async function driveFetch(url, token, init){
+    init=init||{};
+    init.headers=Object.assign({Authorization:"Bearer "+token}, init.headers||{});
+    var res=await fetch(url, init);
+    if(res.status===401){ lsSet(LS_PREFIX+"driveToken",""); throw new Error("expired"); }
+    if(res.status===403){
+      var body=""; try{ body=await res.clone().text(); }catch(e){}
+      if(/insufficient|scope/i.test(body)){ lsSet(LS_PREFIX+"driveToken",""); lsSet(LS_PREFIX+"driveConsented",""); throw new Error("scope"); }
+    }
+    if(!res.ok) throw new Error("http-"+res.status);
+    return res;
+  }
+  function showDriveError(e){
+    var m=String(e && e.message);
+    showToast(m==="expired" ? "Googleのログインが切れました。もう一度 ☁ を押してください"
+      : m==="scope" ? "Driveへの書き込み許可が必要です。☁ を押して許可してください"
+      : (m==="http-404" || m==="http-403") ? "Driveのファイルやフォルダを開けませんでした（URLとアクセス権を確認してください）"
+      : "Driveとやりとりできませんでした（"+m+"）");
+  }
+  // スマホ版で使うのは schedule.mw と taskList.md だけ（ロードマップ・巡回ログ・colorRules.md は読まない）
+  function pickDriveFiles(list){
+    return list.filter(function(f){
+      var n=f.name.toLowerCase();
+      return (/schedule/.test(n) && /\.mw$/.test(n)) || (/tasklist/.test(n) && /\.md$/.test(n));
+    });
+  }
+  // 1つの種類を Drive に保存する。読み込んだ後に Drive 側が更新されていたら、上書きしてよいか確認する
+  async function saveKindToDrive(kind, token){
+    var s=store[kind];
+    if(!s || !s.dirty) return "skip";
+    var folderId=driveFolderId(driveCfg().folder);
+    if(!s.driveId){
+      var q=encodeURIComponent("'"+folderId+"' in parents and trashed=false and name='"+s.name.replace(/'/g,"\\'")+"'");
+      var found=((await (await driveFetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,modifiedTime)&supportsAllDrives=true&includeItemsFromAllDrives=true", token)).json()).files||[])[0];
+      if(found) s.driveId=found.id;
+    }
+    var meta;
+    if(s.driveId){
+      var info=await (await driveFetch("https://www.googleapis.com/drive/v3/files/"+s.driveId+"?fields=id,modifiedTime,trashed&supportsAllDrives=true", token)).json();
+      var knownMs=s.driveModified ? Date.parse(s.driveModified) : (s.modifiedAt||0);
+      if(info.trashed){ s.driveId=null; }
+      else if(knownMs && Math.abs(Date.parse(info.modifiedTime)-knownMs)>1000){
+        var when=new Date(info.modifiedTime);
+        if(!confirm("Drive の "+s.name+" は、読み込んだ後に更新されています（"+(when.getMonth()+1)+"/"+when.getDate()+" "+timeStr(when)+"）。\n\n"+
+                    "OK: スマホの内容で上書きする（Drive側の変更は消えます）\nキャンセル: 保存しない（スマホの変更は残ります）")) return "kept";
+      }
+    }
+    if(s.driveId){
+      meta=await (await driveFetch("https://www.googleapis.com/upload/drive/v3/files/"+s.driveId+"?uploadType=media&fields=id,modifiedTime&supportsAllDrives=true", token,
+        {method:"PATCH", headers:{"Content-Type":"text/plain; charset=UTF-8"}, body:s.text})).json();
+    }else{
+      var boundary="skbs"+Date.now().toString(36);
+      var body="--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+
+        JSON.stringify({name:s.name, parents:[folderId], mimeType:"text/plain"})+"\r\n--"+boundary+
+        "\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n"+s.text+"\r\n--"+boundary+"--";
+      meta=await (await driveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime&supportsAllDrives=true", token,
+        {method:"POST", headers:{"Content-Type":"multipart/related; boundary="+boundary}, body:body})).json();
+    }
+    s.driveId=meta.id; s.driveModified=meta.modifiedTime;
+    s.dirty=false; s.savedAt=Date.now();
+    persist(kind);
+    return "saved";
+  }
+  async function pushDirtyToDrive(token){
+    var kept=[], saved=[], kinds=dirtyKinds();
+    for(var i=0;i<kinds.length;i++){
+      var r=await saveKindToDrive(kinds[i], token);
+      if(r==="saved") saved.push(store[kinds[i]].name);
+      if(r==="kept") kept.push(kinds[i]);
+    }
+    updateDirtyMark();
+    if(saved.length) showToast(saved.join("、")+" を Drive に保存しました");
+    return kept;
+  }
+  function scheduleDriveSave(){
+    clearTimeout(driveSaveTimer);
+    if(!driveSupported() || !driveConfigured()) return;
+    driveSaveTimer=setTimeout(async function(){
+      var token=driveSavedToken();
+      if(!token){ showToast("Driveに未保存の変更があります。☁ を押すと保存します"); return; }
+      if(driveBusy){ scheduleDriveSave(); return; }
+      driveBusy=true; updateDriveUi("保存中…");
+      try{ await pushDirtyToDrive(token); }
+      catch(e){ showDriveError(e); }
+      finally{ driveBusy=false; updateDriveUi(); renderLoadRows(); }
+    }, DRIVE_SAVE_DELAY);
+  }
+  // ☁ の同期: ①スマホの変更を Drive に保存 → ②Drive の最新を読み込む（保存しなかった種類は読み込まない）
+  async function syncFromDrive(token){
+    driveBusy=true; updateDriveUi("同期中…");
+    try{
+      clearTimeout(driveSaveTimer);
+      var kept=await pushDirtyToDrive(token);
+      var q=encodeURIComponent("'"+driveFolderId(driveCfg().folder)+"' in parents and trashed=false");
+      var list=((await (await driveFetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name,modifiedTime)&pageSize=200&supportsAllDrives=true&includeItemsFromAllDrives=true", token)).json()).files)||[];
+      var targets=pickDriveFiles(list);
+      if(!targets.length){ showToast("フォルダに schedule.mw・taskList.md が見つかりませんでした"); return; }
+      var files=[];
+      for(var i=0;i<targets.length;i++){
+        var f=targets[i];
+        if(kept.some(function(k){ return store[k] && store[k].name===f.name; })) continue;
+        var same=Object.keys(store).some(function(k){ var s=store[k]; return s && s.driveId===f.id && s.driveModified===f.modifiedTime && !s.dirty; });
+        if(same) continue;
+        var res=await driveFetch("https://www.googleapis.com/drive/v3/files/"+f.id+"?alt=media&supportsAllDrives=true", token);
+        var file=new File([await res.text()], f.name, {type:"text/plain", lastModified:Date.parse(f.modifiedTime)||Date.now()});
+        file.driveId=f.id; file.driveModified=f.modifiedTime;
+        files.push(file);
+      }
+      if(files.length) await handleFiles(files);
+      else if(!kept.length) showToast("Driveの内容は最新です");
+      lsSet(LS_PREFIX+"driveLast", String(Date.now()));
+    }catch(e){
+      showDriveError(e);
+    }finally{
+      driveBusy=false; updateDriveUi(); updateDirtyMark(); renderLoadRows();
+    }
+  }
+  async function driveSyncClicked(){
+    if(!driveSupported()){ showToast("Drive連携は https で公開したページでだけ使えます"); return; }
+    if(!driveConfigured()){ renderLoadRows(); openOverlay("settingsSheet"); document.getElementById("driveSettings").open=true; return; }
+    if(driveBusy) return;
+    var token;
+    try{ token=await requestDriveToken(); }
+    catch(e){
+      var m=String(e && e.message);
+      if(m==="auth-not-ready"){ prepareDriveAuth(); showToast("Googleのログイン準備中です。数秒後にもう一度押してください"); }
+      else if(m!=="popup_closed") showToast("Googleの許可が得られませんでした（"+m+"）");
+      return;
+    }
+    syncFromDrive(token);
+  }
+  document.getElementById("driveLoadBtn").addEventListener("click", driveSyncClicked);
+  document.getElementById("driveQuickBtn").addEventListener("click", driveSyncClicked);
+  document.getElementById("driveSave").addEventListener("click", function(){
+    var id=document.getElementById("driveClientId").value.trim();
+    var folder=document.getElementById("driveFolder").value.trim();
+    if(folder && !driveFolderId(folder)){ showToast("フォルダのURLを読み取れませんでした"); return; }
+    if(id!==driveCfg().clientId){ driveTokenClient=null; lsSet(LS_PREFIX+"driveToken",""); lsSet(LS_PREFIX+"driveConsented",""); }
+    lsSet(LS_PREFIX+"driveClientId", id);
+    lsSet(LS_PREFIX+"driveFolder", folder);
+    document.getElementById("driveSettings").open=false;
+    updateDriveUi();
+    prepareDriveAuth();
+    showToast("Drive連携の設定を保存しました");
+  });
+  document.getElementById("driveSignOut").addEventListener("click", function(){
+    var t=driveSavedToken();
+    if(t && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(t, function(){});
+    lsSet(LS_PREFIX+"driveToken",""); lsSet(LS_PREFIX+"driveConsented","");
+    showToast("Googleのログイン情報を消しました");
+    updateDriveUi();
+  });
+  (function(){
+    var c=driveCfg();
+    document.getElementById("driveClientId").value=c.clientId;
+    document.getElementById("driveFolder").value=c.folder;
+    updateDriveUi();
+    prepareDriveAuth();
+    // 起動時・画面に戻ったとき: 許可がまだ有効なら自動で同期する（切れていたら ☁ を押すだけ）
+    function autoSync(){
+      if(!driveSupported() || !driveConfigured() || driveBusy) return;
+      var token=driveSavedToken();
+      var last=parseInt(lsGet(LS_PREFIX+"driveLast"),10)||0;
+      if(token && (Date.now()-last>DRIVE_AUTO_INTERVAL || dirtyKinds().length)) syncFromDrive(token);
+    }
+    setTimeout(autoSync, 800);
+    document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") autoSync(); });
+  })();
 
   /* =====================================================================
      RENDER + CLOCK
