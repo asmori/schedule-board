@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#040810">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>ニュース閲覧ボード（タブレット版）</title>
+<script>/* 着せ替え・表示サイズを描画前に反映（ちらつき防止） */ try{ var t=localStorage.getItem("nvt_theme_v1"); if(t) document.documentElement.setAttribute("data-theme", t); var z=parseFloat(localStorage.getItem("nvta_uiZoom")); if(z) document.documentElement.style.setProperty("--ui-zoom", z); }catch(e){}</script>
+<style>
+  :root{
+    --navy-950:#040810;
+    --navy-900:#060f1f;
+    --cyan:#2fe4ff;
+    --cyan-soft:#8ef3ff;
+    --cyan-dim:#0f7d95;
+    --violet:#8a7dff;
+    --amber:#ffb454;
+    --mint:#3dffc0;
+    --danger:#ff4d6d;
+    --star:#ffd84d;
+    --text:#e4f6ff;
+    --text-dim:#89aec4;
+    --accent-rgb:47,228,255;
+    --panel-rgb:11,26,48;
+    --card-rgb:10,22,44;
+    --border:rgba(90,225,255,0.28);
+    --panel:rgba(var(--panel-rgb),0.62);
+    --panel-solid:rgba(var(--panel-rgb),0.96);
+    --tabbar-h:64px;
+    /* 着せ替えで上書きする色 */
+    --header-rgb:4,9,18;
+    --border-rgb:90,225,255;
+    --text-sum:#b8d3e3;
+    --corp-rgb:255,180,84; --it-rgb:47,228,255; --ai-rgb:138,125,255; --fav-rgb:255,216,77;
+    --body-glow:radial-gradient(ellipse at 80% 110%, #0d2a4a 0%, transparent 55%),radial-gradient(ellipse at 0% 0%, #0a1d38 0%, transparent 50%);
+    --body-bg:var(--navy-950);
+    --card-grad:linear-gradient(155deg, rgba(30,55,90,0.5) 0%, rgba(8,16,30,0.45) 100%);
+    --header-bg:linear-gradient(180deg, rgba(4,9,18,0.96), rgba(4,9,18,0.8));
+    --tabbar-bg:linear-gradient(0deg, rgba(4,9,18,0.98), rgba(4,9,18,0.85));
+    --alert:#4cd964; --alert-rgb:76,217,100; --alert-page:#4cd964; --alert-page-rgb:76,217,100;
+    --new-fg:#04101f;
+    --scheme:dark;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;color:var(--text);
+    font-family:'Noto Sans JP','Hiragino Sans','Yu Gothic UI',sans-serif;}
+  body{background:var(--body-glow), var(--body-bg);}
+  button,input,select{font-family:inherit;color:inherit;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:6px;}
+
+  #app{position:fixed;inset:0;display:flex;flex-direction:column;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);}
+
+  /* ---------- HEADER ---------- */
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px;flex-shrink:0;
+    background:var(--header-bg);border-bottom:1px solid var(--border);}
+  .brand-mark{width:30px;height:30px;border:1px solid var(--cyan);border-radius:8px;display:flex;align-items:center;justify-content:center;
+    color:var(--cyan);font-size:16px;box-shadow:0 0 14px rgba(var(--accent-rgb),0.5);flex-shrink:0;}
+  .brand{min-width:0;}
+  .brand h1{margin:0;font-size:17px;font-weight:600;letter-spacing:0.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .brand p{margin:0;font-size:12px;color:var(--text-dim);white-space:nowrap;}
+  .spacer{flex:1;}
+  .hbtn{min-width:44px;height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--border);background:rgba(var(--accent-rgb),0.08);
+    font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;white-space:nowrap;}
+  .hbtn:active{background:rgba(var(--accent-rgb),0.25);}
+  .hbtn:disabled{opacity:0.35;}
+  .hbtn.on{background:rgba(var(--accent-rgb),0.28);border-color:var(--cyan);color:var(--cyan-soft);}
+  .hbtn.linked{border-color:var(--mint);color:var(--mint);}
+  .hbtn.primary{border-color:var(--cyan);color:var(--cyan-soft);box-shadow:0 0 10px rgba(var(--accent-rgb),0.25);}
+  .date-nav{display:flex;align-items:center;gap:6px;}
+  .date-nav select{height:44px;background:var(--navy-900);border:1px solid var(--border);border-radius:10px;color:var(--cyan-soft);font-size:15.5px;padding:0 10px;color-scheme:var(--scheme);max-width:200px;}
+
+  /* ---------- 流れる文字 ---------- */
+  .alert-row{flex-shrink:0;padding:6px 14px 0;}
+  .header-alert{position:relative;height:28px;overflow:hidden;}
+  .header-alert-track{position:absolute;top:0;left:0;white-space:nowrap;font-size:17px;font-weight:700;line-height:28px;color:var(--alert-page);text-shadow:0 0 10px rgba(var(--alert-page-rgb),0.6);
+    animation-name:headerAlertScroll, headerAlertGlowGreen;animation-timing-function:linear, ease-in-out;animation-iteration-count:infinite, infinite;}
+  @keyframes headerAlertScroll{ from{transform:translateX(var(--startX,100%));} to{transform:translateX(var(--endX,-100%));} }
+  @keyframes headerAlertGlowGreen{ 0%,100%{ text-shadow:0 0 4px rgba(var(--alert-page-rgb),0.45); opacity:0.8; } 50%{ text-shadow:0 0 18px rgba(var(--alert-page-rgb),1); opacity:1; } }
+
+  /* ---------- 検索バー ---------- */
+  .search-row{display:none;flex-shrink:0;gap:8px;padding:8px 14px 0;}
+  .search-row.open{display:flex;}
+  .search-row input{flex:1;height:46px;background:var(--navy-900);border:1px solid var(--cyan);border-radius:10px;color:var(--text);font-size:16px;padding:0 14px;outline:none;
+    box-shadow:0 0 10px rgba(var(--accent-rgb),0.2);}
+
+  /* ---------- MAIN ---------- */
+  main{flex:1;min-height:0;display:flex;padding:10px 14px;touch-action:pan-y;}
+  .panel{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:12px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;}
+  .panel-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+    background:linear-gradient(90deg, rgba(var(--cat-rgb),0.16), transparent 70%);}
+  .cat-ico{width:34px;height:34px;border-radius:9px;border:1px solid rgb(var(--cat-rgb));display:flex;align-items:center;justify-content:center;font-size:18px;
+    box-shadow:0 0 12px rgba(var(--cat-rgb),0.45);flex-shrink:0;}
+  .panel-head .ttl{flex:1;min-width:0;}
+  .panel-head h2{margin:0;font-size:18px;font-weight:600;color:rgb(var(--cat-rgb));}
+  .panel-head .sub{display:block;font-size:12.5px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .badges{display:flex;gap:6px;font-size:13px;font-weight:700;flex-shrink:0;}
+  .tcb{padding:3px 9px;border-radius:11px;border:1px solid currentColor;white-space:nowrap;}
+  .tcb-unread{color:var(--amber);}
+  .tcb-unread.zero{color:var(--mint);}
+  .tcb-total{color:var(--cyan-soft);}
+  .panel-body{flex:1;overflow:auto;padding:12px;min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+  .col-corp{--cat-rgb:var(--corp-rgb);}
+  .col-it{--cat-rgb:var(--it-rgb);}
+  .col-ai{--cat-rgb:var(--ai-rgb);}
+  .col-fav{--cat-rgb:var(--fav-rgb);}
+
+  /* ---------- SECTIONS ---------- */
+  .sec{margin-bottom:14px;}
+  .sec-head{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border-radius:9px;cursor:pointer;user-select:none;
+    background:rgba(var(--card-rgb),0.55);border:1px solid rgba(var(--cat-rgb),0.3);}
+  .sec-head:active{background:rgba(var(--cat-rgb),0.12);}
+  .sec-fold{color:var(--text-dim);font-size:12px;width:14px;flex-shrink:0;margin-top:5px;transition:transform .15s ease;}
+  .sec.folded .sec-fold{transform:rotate(-90deg);}
+  .sec-tag{font-size:12px;font-weight:700;padding:1px 8px;border-radius:10px;border:1px solid rgba(var(--cat-rgb),0.7);color:rgb(var(--cat-rgb));white-space:nowrap;margin-top:2px;}
+  .sec-ttl{flex:1;min-width:0;}
+  .sec-ttl b{font-size:16px;font-weight:600;}
+  .sec-ttl small{display:block;font-size:12.5px;color:var(--text-dim);line-height:1.45;margin-top:2px;}
+  .sec-cnt{font-size:13px;color:var(--text-dim);white-space:nowrap;margin-top:3px;}
+  .sec-cnt em{font-style:normal;color:var(--amber);font-weight:700;}
+  .sec-items{display:grid;grid-template-columns:1fr;gap:9px;margin-top:9px;}
+  .sec.folded .sec-items{display:none;}
+  @media (min-width: 1000px){ .sec-items{grid-template-columns:1fr 1fr;} }
+
+  /* ---------- NEWS CARD ---------- */
+  .ncard{position:relative;padding:11px 12px 9px 16px;border-radius:10px;background:var(--card-grad);
+    border:1px solid var(--border);display:flex;flex-direction:column;}
+  .ncard::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:2px;background:rgb(var(--card-cat-rgb,var(--cat-rgb)));box-shadow:0 0 8px rgba(var(--card-cat-rgb,var(--cat-rgb)),0.8);}
+  .ncard.c-corp{--card-cat-rgb:var(--corp-rgb);}
+  .ncard.c-it{--card-cat-rgb:var(--it-rgb);}
+  .ncard.c-ai{--card-cat-rgb:var(--ai-rgb);}
+  .ncard.read{opacity:0.5;}
+  .ncard.read::before{background:var(--text-dim);box-shadow:none;}
+  .nc-top{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-dim);min-height:30px;}
+  .nc-date{color:var(--cyan-soft);font-weight:600;}
+  .nc-new{font-size:11px;font-weight:800;color:var(--new-fg);background:var(--mint);padding:0 6px;border-radius:4px;letter-spacing:0.05em;}
+  .nc-src{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .nc-file{font-size:12px;border:1px solid var(--border);border-radius:4px;padding:0 5px;white-space:nowrap;}
+  .nc-star{margin-left:auto;width:40px;height:36px;margin-right:-6px;background:none;border:none;cursor:pointer;font-size:22px;line-height:1;color:var(--text-dim);}
+  .nc-star.on{color:var(--star);text-shadow:0 0 8px rgba(255,216,77,0.7);}
+  .nc-title{display:block;margin:2px 0 3px;font-size:17px;font-weight:600;line-height:1.5;color:var(--text);text-decoration:none;}
+  .nc-title:active{color:rgb(var(--card-cat-rgb,var(--cat-rgb)));}
+  .nc-sum{margin:2px 0 0;font-size:14.5px;line-height:1.6;color:var(--text-sum);}
+  .nc-foot{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:7px;}
+  .nc-host{font-size:12px;color:var(--text-dim);opacity:0.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
+  .nc-readbtn{height:36px;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:13px;padding:0 12px;border-radius:8px;cursor:pointer;white-space:nowrap;}
+  .nc-readbtn:active{background:rgba(var(--accent-rgb),0.2);}
+  mark{background:rgba(255,216,77,0.35);color:inherit;border-radius:2px;padding:0 1px;}
+  .readall{height:38px;font-size:13.5px;}
+
+  .empty-col{padding:40px 16px;text-align:center;color:var(--text-dim);font-size:15px;line-height:1.8;}
+
+  /* ---------- SETUP ---------- */
+  .setup{align-self:center;margin:0 auto;max-width:600px;flex:0 1 600px;padding:26px 24px;text-align:center;}
+  .setup h2{margin:0 0 10px;font-size:20px;color:var(--cyan-soft);}
+  .setup p{margin:6px 0;color:var(--text-dim);font-size:15px;line-height:1.8;}
+  .setup code{display:inline-block;margin:6px 0 14px;padding:7px 10px;border-radius:8px;background:var(--navy-900);border:1px solid var(--border);color:var(--cyan-soft);font-size:12.5px;word-break:break-all;}
+  .setup .hbtn{font-size:17px;height:52px;padding:0 26px;}
+
+  /* ---------- TAB BAR ---------- */
+  nav.tabbar{flex-shrink:0;display:flex;height:calc(var(--tabbar-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);
+    background:var(--tabbar-bg);border-top:1px solid var(--border);}
+  .tab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;cursor:pointer;
+    color:var(--text-dim);font-size:12.5px;font-weight:600;}
+  .tab .ti{font-size:22px;line-height:1;filter:grayscale(0.6);opacity:0.75;}
+  .tab.active{color:rgb(var(--cat-rgb));}
+  .tab.active .ti{filter:none;opacity:1;text-shadow:0 0 12px rgba(var(--cat-rgb),0.8);}
+  .tab.active::after{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 3px 3px;background:rgb(var(--cat-rgb));box-shadow:0 0 10px rgba(var(--cat-rgb),0.9);}
+  .tab .tb{position:absolute;top:6px;left:calc(50% + 10px);min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--amber);color:var(--new-fg);font-size:11.5px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;}
+  .tab .tb.hide{display:none;}
+
+  /* 表示サイズ（設定で 70〜120%）。画面全体をこの倍率で表示する */
+  html{zoom:var(--ui-zoom,1);}
+
+  /* ---------- 設定画面（スケジュールカンバンボードのタブレットアプリ版と同じ構成） ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:flex-end;justify-content:center;z-index:100;}
+  .overlay.open{display:flex;}
+  .sheet{width:min(820px,100%);max-height:90vh;overflow-y:auto;background:var(--panel-solid);border:1px solid var(--border);border-bottom:none;color:var(--text);
+    border-radius:16px 16px 0 0;padding:18px 20px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,0.5);}
+  .sheet h3{margin:0 0 10px;font-size:19px;}
+  .sheet h4{margin:20px 0 8px;font-size:15.5px;color:var(--cyan-soft);border-bottom:1px solid var(--border);padding-bottom:4px;}
+  .sheet-grip{width:44px;height:5px;border-radius:3px;background:rgba(127,127,127,0.4);margin:-6px auto 14px;}
+  .sheet-actions{display:flex;justify-content:flex-end;margin-top:16px;gap:10px;flex-wrap:wrap;}
+  .btn-col{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+  .btn-col .hbtn{width:100%;justify-content:flex-start;padding:0 14px;}
+  .hbtn.danger{color:var(--danger);border-color:rgba(255,77,109,0.45);}
+  .hint{font-size:13px;color:var(--text-dim);line-height:1.7;margin-top:12px;}
+  .data-info{font-size:13.5px;color:var(--text-dim);margin:6px 0 0;}
+  .drive-box{margin-top:6px;padding:12px;border:1px solid var(--border);border-radius:10px;background:rgba(var(--accent-rgb),0.05);}
+  .drive-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;font-size:15px;flex-wrap:wrap;}
+  .drive-head .sub{font-size:12.5px;color:var(--text-dim);}
+  #driveLoadBtn{width:100%;}
+  #driveSettings{margin-top:10px;font-size:13.5px;}
+  #driveSettings summary{cursor:pointer;color:var(--text-dim);padding:6px 0;}
+  .drive-field{display:block;margin-top:8px;font-size:12.5px;color:var(--text-dim);}
+  .drive-field input{display:block;width:100%;margin-top:4px;padding:9px 10px;border-radius:8px;border:1px solid var(--border);
+    background:rgba(0,0,0,0.25);color:var(--text);font-size:14px;font-family:inherit;}
+  html[data-theme="accessibility"] .drive-field input,html[data-theme="minimal"] .drive-field input{background:rgba(255,255,255,0.7);}
+  html[data-theme="accessibility"] .overlay,html[data-theme="minimal"] .overlay{background:rgba(20,30,40,0.45);}
+  #driveQuickBtn{display:none;}
+  html.drive-ready #driveQuickBtn{display:inline-flex;}
+  #driveQuickBtn.busy{opacity:0.5;pointer-events:none;}
+  .theme-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .theme-item{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);text-align:left;padding:13px 14px;font-size:15px;cursor:pointer;}
+  .theme-item:last-child{border-bottom:none;}
+  .theme-item.active{color:var(--cyan-soft);font-weight:600;background:rgba(var(--accent-rgb),0.1);}
+  .theme-item.active::after{content:" ✓";}
+  .zoom-list{display:flex;gap:6px;flex-wrap:wrap;}
+  .zoom-list button{flex:1;min-width:64px;height:42px;border-radius:8px;border:1px solid var(--border);background:rgba(var(--accent-rgb),0.06);color:var(--text);font-size:14px;cursor:pointer;}
+  .zoom-list button.on{background:rgba(var(--accent-rgb),0.3);border-color:var(--cyan);color:var(--cyan-soft);font-weight:700;}
+  .setup .btn-pair{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+  /* お気に入りタブの色（明るいテーマでは濃い黄土色） */
+  html[data-theme="accessibility"]{--fav-rgb:176,125,0;}
+  html[data-theme="minimal"]{--fav-rgb:201,138,0;}
+  html[data-theme="dark"]{--fav-rgb:217,187,92;}
+
+  .toast{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px);transform:translateX(-50%) translateY(20px);background:var(--panel-solid);border:1px solid var(--cyan);color:var(--cyan-soft);
+    padding:10px 18px;border-radius:10px;font-size:15px;box-shadow:0 8px 30px rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:all .25s ease;z-index:300;white-space:nowrap;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* =====================================================================
+     着せ替え (THEMES) — スケジュールカンバンボードと同じ 標準＋6種。
+     各テーマは上の変数セットを上書きするだけで、構造上の例外だけを個別に指定する。
+  ===================================================================== */
+
+  /* 1. アクセシビリティ重視: 明るいグレーの画面、白いカード、ティール→グリーンのヘッダー */
+  html[data-theme="accessibility"]{
+    --navy-950:#d0d5da; --navy-900:#eef1f3; --navy-800:#b8bfc5;
+    --cyan:#0a7f91; --cyan-soft:#00566b; --cyan-dim:#1ba08f;
+    --violet:#4b2fc9; --amber:#8a4b00; --mint:#0e8a6a; --danger:#c8102e; --star:#b07d00;
+    --text:#22272b; --text-dim:#4a535b; --text-sum:#323a41;
+    --border:rgba(0,40,50,0.27); --panel:#d0d5da; --panel-solid:#e4e8eb;
+    --accent-rgb:10,127,145; --border-rgb:0,40,50; --card-rgb:198,204,210; --panel-rgb:208,213,218; --header-rgb:0,86,107;
+    --corp-rgb:166,90,0; --it-rgb:0,105,122; --ai-rgb:79,53,184;
+    --body-glow:none; --body-bg:#b5bdc3; --card-grad:#e8ebee;
+    --header-bg:linear-gradient(90deg,#00566b 0%,#0b7a82 55%,#1ba08f 100%);
+    --tabbar-bg:#e8ebee;
+    --alert:#ffffff; --alert-rgb:255,255,255; --alert-page:#0a6b3a; --alert-page-rgb:10,107,58;
+    --new-fg:#fff; --scheme:light;
+  }
+  html[data-theme="accessibility"] .panel{position:relative;border-radius:4px;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 1px 5px rgba(0,40,50,0.12);}
+  html[data-theme="accessibility"] .panel::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;z-index:3;pointer-events:none;background:linear-gradient(90deg,#00566b,#1ba08f);}
+  html[data-theme="accessibility"] header.topbar{border-bottom:none;box-shadow:0 1px 5px rgba(0,40,50,0.25);}
+
+  /* 2. ダークモード: 落ち着いた低刺激の夜間配色 */
+  html[data-theme="dark"]{
+    --navy-950:#14171c; --navy-900:#1a1e24; --navy-800:#262b33;
+    --cyan:#7fb7c9; --cyan-soft:#a7cdd9; --cyan-dim:#5a8a99;
+    --violet:#a79bd1; --amber:#d9a463; --mint:#7fbfa0; --danger:#d97a86; --star:#d9bb5c;
+    --text:#dfe3e8; --text-dim:#8b929c; --text-sum:#b3bac3;
+    --border:rgba(140,150,165,0.18); --panel:rgba(32,36,43,0.7); --panel-solid:rgba(26,30,36,0.96);
+    --accent-rgb:127,183,201; --border-rgb:140,150,165; --card-rgb:38,43,51; --panel-rgb:26,30,36; --header-rgb:20,23,28;
+    --corp-rgb:217,164,99; --it-rgb:127,183,201; --ai-rgb:167,155,209;
+    --body-glow:none; --body-bg:#14171c;
+    --card-grad:linear-gradient(155deg, rgba(44,49,58,0.75) 0%, rgba(30,34,41,0.7) 100%);
+    --tabbar-bg:#14171c;
+    --alert:#8fcf9c; --alert-rgb:143,207,156; --alert-page:#8fcf9c; --alert-page-rgb:143,207,156;
+  }
+  html[data-theme="dark"] .ncard::before,html[data-theme="dark"] .brand-mark,html[data-theme="dark"] .cat-ico{box-shadow:none;}
+  html[data-theme="dark"] .brand h1,html[data-theme="dark"] .nc-star.on{text-shadow:none;}
+
+  /* 3. ミニマリズム: フラットな明るいグレー、白いカード、チャコールのヘッダー＋ティール */
+  html[data-theme="minimal"]{
+    --navy-950:#cbd0d5; --navy-900:#eef0f2; --navy-800:#b2bac0;
+    --cyan:#1db9a1; --cyan-soft:#14181d; --cyan-dim:#16917f;
+    --violet:#5d56c9; --amber:#a36100; --mint:#14a085; --danger:#d9453d; --star:#c98a00;
+    --text:#252b33; --text-dim:#545d67; --text-sum:#353d46;
+    --border:rgba(30,40,55,0.24); --panel:#cbd0d5; --panel-solid:#e6e9ec;
+    --accent-rgb:29,185,161; --border-rgb:30,40,55; --card-rgb:192,199,205; --panel-rgb:203,208,213; --header-rgb:43,50,61;
+    --corp-rgb:184,98,0; --it-rgb:13,140,121; --ai-rgb:93,86,201;
+    --body-glow:none; --body-bg:#aab3ba; --card-grad:#eceef0;
+    --header-bg:#2b323d; --tabbar-bg:#2b323d;
+    --alert:#4cd964; --alert-rgb:76,217,100; --alert-page:#0a6b3a; --alert-page-rgb:10,107,58;
+    --new-fg:#fff; --scheme:light;
+  }
+  html[data-theme="minimal"] .panel{border-radius:4px;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 1px 3px rgba(30,40,55,0.1);}
+  html[data-theme="minimal"] header.topbar{border-bottom:3px solid #1db9a1;box-shadow:0 1px 4px rgba(0,0,0,0.2);}
+  html[data-theme="minimal"] .brand-mark{background:#1db9a1;border-color:#1db9a1;}
+  /* パネルの見出し帯はヘッダーと同じチャコール */
+  html[data-theme="minimal"] .panel-head{background:#2b323d;border-bottom:none;}
+  html[data-theme="minimal"] .panel-head h2{color:#fff;font-weight:700;}
+  html[data-theme="minimal"] .panel-head .sub{color:rgba(255,255,255,0.65);}
+  html[data-theme="minimal"] .panel-head .cat-ico{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.08);}
+  html[data-theme="minimal"] .panel-head .tcb-unread{color:#ffc46b;}
+  html[data-theme="minimal"] .panel-head .tcb-unread.zero{color:#7be8a8;}
+  html[data-theme="minimal"] .panel-head .tcb-total{color:#7fe3d6;}
+  html[data-theme="minimal"] .panel-head .btn,html[data-theme="minimal"] .panel-head .hbtn{color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.08);}
+  html[data-theme="minimal"] .tab{color:rgba(255,255,255,0.6);}
+  html[data-theme="minimal"] .tab.active{color:#fff;}
+
+  /* 明るい2テーマ共通: ヘッダーは白文字、ネオンの光彩は外す */
+  html[data-theme="accessibility"] .brand h1,html[data-theme="minimal"] .brand h1{color:#fff;text-shadow:none;}
+  html[data-theme="accessibility"] .brand p,html[data-theme="minimal"] .brand p{color:rgba(255,255,255,0.78);}
+  html[data-theme="accessibility"] .brand-mark,html[data-theme="minimal"] .brand-mark{color:#fff;box-shadow:none;}
+  html[data-theme="accessibility"] .brand-mark{border-color:rgba(255,255,255,0.75);background:rgba(255,255,255,0.14);}
+  html[data-theme="accessibility"] header.topbar .btn,html[data-theme="accessibility"] header.topbar .hbtn,html[data-theme="accessibility"] .today-badge,
+  html[data-theme="minimal"] header.topbar .btn,html[data-theme="minimal"] header.topbar .hbtn,html[data-theme="minimal"] .today-badge{color:#fff;border-color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.12);box-shadow:none;}
+  html[data-theme="accessibility"] header.topbar .btn:hover{background:rgba(255,255,255,0.26);border-color:#fff;color:#fff;}
+  html[data-theme="minimal"] header.topbar .btn:hover{background:rgba(29,185,161,0.35);border-color:#1db9a1;color:#fff;}
+  html[data-theme="accessibility"] header.topbar .on,html[data-theme="accessibility"] header.topbar .star-on{background:rgba(255,255,255,0.34);border-color:#fff;}
+  html[data-theme="minimal"] header.topbar .on,html[data-theme="minimal"] header.topbar .star-on{background:#1db9a1;border-color:#1db9a1;}
+  html[data-theme="accessibility"] header.topbar .linked,html[data-theme="minimal"] header.topbar .linked{border-color:#fff;}
+  html[data-theme="accessibility"] .ncard::before,html[data-theme="minimal"] .ncard::before,
+  html[data-theme="accessibility"] .cat-ico,html[data-theme="minimal"] .cat-ico,
+  html[data-theme="accessibility"] .btn.primary,html[data-theme="minimal"] .btn.primary,
+  html[data-theme="accessibility"] .hbtn.primary,html[data-theme="minimal"] .hbtn.primary{box-shadow:none;}
+  html[data-theme="accessibility"] .ncard:hover,html[data-theme="minimal"] .ncard:hover{box-shadow:0 1px 6px rgba(0,0,0,0.12);}
+  html[data-theme="accessibility"] .nc-star.on,html[data-theme="minimal"] .nc-star.on,
+  html[data-theme="accessibility"] .tab.active .ti,html[data-theme="minimal"] .tab.active .ti{text-shadow:none;}
+  html[data-theme="accessibility"] .btn.primary,html[data-theme="accessibility"] .hbtn.primary{background:var(--cyan);border-color:var(--cyan);color:#fff;}
+  html[data-theme="minimal"] .btn.primary,html[data-theme="minimal"] .hbtn.primary{background:#1db9a1;border-color:#1db9a1;color:#fff;}
+  html[data-theme="accessibility"] mark,html[data-theme="minimal"] mark{background:rgba(255,200,0,0.45);}
+  html[data-theme="accessibility"] .toast,html[data-theme="minimal"] .toast,
+  html[data-theme="accessibility"] .theme-menu,html[data-theme="minimal"] .theme-menu{box-shadow:0 4px 16px rgba(0,0,0,0.18);}
+
+  /* 4. 色彩と質感: ディープバイオレットの地にネオンピンク、マゼンタ→インディゴ→ティールの光＋細かいノイズ */
+  html[data-theme="texture"]{
+    --navy-950:#0d0620; --navy-900:#170a33; --navy-800:#241448;
+    --cyan:#ff7edb; --cyan-soft:#ffd1f0; --cyan-dim:#c23fae;
+    --violet:#9d8bff; --amber:#ffb454; --mint:#3dffc0; --danger:#ff5d7a;
+    --text:#f5eefc; --text-dim:#c8b8e8; --text-sum:#e0d0f2;
+    --border:rgba(255,126,219,0.28); --panel:rgba(23,10,51,0.72); --panel-solid:rgba(29,15,61,0.96);
+    --accent-rgb:255,126,219; --border-rgb:255,126,219; --card-rgb:36,20,72; --panel-rgb:29,15,61; --header-rgb:13,6,32;
+    --corp-rgb:255,180,84; --it-rgb:94,224,255; --ai-rgb:190,160,255;
+    --body-glow:linear-gradient(125deg, rgba(90,20,120,0.55) 0%, rgba(40,20,110,0.5) 30%, rgba(10,60,110,0.42) 60%, rgba(20,90,90,0.35) 100%);
+    --body-bg:#0d0620;
+    --card-grad:linear-gradient(155deg, rgba(70,35,125,0.55) 0%, rgba(29,15,61,0.5) 100%);
+    --tabbar-bg:linear-gradient(0deg, rgba(13,6,32,0.98), rgba(13,6,32,0.85));
+  }
+  .noise-overlay{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;}
+  html[data-theme="texture"] .noise-overlay{
+    opacity:0.06;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode:overlay;
+  }
+
+  /* 5. アクティブ①: メインメニューと同じ地色＋動くメッシュ光とコードレイン */
+  html[data-theme="mainmenu"]{
+    --navy-950:#0e1217; --navy-900:#11151b; --navy-800:#1b222b;
+    --cyan:#5ea5f3; --cyan-soft:#8fc4ff; --cyan-dim:#1a3450;
+    --violet:#a78bfa; --amber:#fbbf24; --mint:#4ade80; --danger:#ff4d6d;
+    --text:#e7eaef; --text-dim:#9aa4b0; --text-sum:#c3cad3;
+    --border:rgba(38,47,58,0.7); --panel:rgba(22,28,35,0.2); --panel-solid:#161c23;
+    --accent-rgb:94,165,243; --border-rgb:38,47,58; --card-rgb:27,34,43; --panel-rgb:22,28,35; --header-rgb:14,18,23;
+    --corp-rgb:251,191,36; --it-rgb:94,165,243; --ai-rgb:167,139,250;
+    --body-glow:none; --body-bg:#0e1217;
+    --card-grad:linear-gradient(155deg, rgba(27,34,43,0.72) 0%, rgba(17,21,27,0.66) 100%);
+    --header-bg:rgba(14,18,23,0.5); --tabbar-bg:rgba(14,18,23,0.6);
+  }
+  /* 6. アクティブ②: 標準の配色のまま、半透明パネル越しにメッシュ光とコードレイン */
+  html[data-theme="active2"]{
+    --panel:rgba(var(--panel-rgb),0.24);
+    --card-grad:linear-gradient(155deg, rgba(30,55,90,0.62) 0%, rgba(8,16,30,0.6) 100%);
+  }
+  html[data-theme="mainmenu"] .panel,html[data-theme="active2"] .panel{backdrop-filter:none;-webkit-backdrop-filter:none;}
+  html[data-theme="mainmenu"] .mesh,html[data-theme="mainmenu"] .page-glow,html[data-theme="mainmenu"] .coderain,
+  html[data-theme="active2"] .mesh,html[data-theme="active2"] .page-glow,html[data-theme="active2"] .coderain{display:block;}
+
+  .mesh{display:none;position:fixed;inset:-15%;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(32% 40% at 14% 18%, rgba(88,166,255,0.34), transparent),
+      radial-gradient(28% 36% at 82% 14%, rgba(198,120,221,0.30), transparent),
+      radial-gradient(34% 40% at 20% 78%, rgba(45,212,191,0.22), transparent),
+      radial-gradient(38% 44% at 82% 82%, rgba(251,191,36,0.18), transparent);
+    filter:blur(70px);opacity:0.7;animation:mmMeshmove 17s ease-in-out infinite;}
+  @keyframes mmMeshmove{ 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(3%,-2%) scale(1.08);} 66%{transform:translate(-3%,2%) scale(1.04);} }
+  .page-glow{display:none;position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:radial-gradient(900px circle at var(--mmx,50%) var(--mmy,35%), rgba(94,165,243,0.14), transparent 70%);}
+  .coderain{display:none;position:fixed;top:-50%;width:1100px;height:220vh;z-index:-1;overflow:hidden;pointer-events:none;
+    transform:perspective(480px) rotateX(12deg) rotateY(-21deg) rotateZ(3deg);transform-origin:center center;
+    -webkit-mask-image:linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);
+    mask-image:linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);}
+  .coderain.cr1{right:-7%;}
+  .coderain.cr2{right:-27%;width:950px;}
+  .coderain.cr3{left:8%;width:820px;transform:perspective(480px) rotateX(12deg) rotateY(21deg) rotateZ(-13deg);}
+  .coderain pre{position:absolute;top:0;left:0;width:100%;margin:0;font:600 15px/1.85 'Consolas','SFMono-Regular',monospace;white-space:pre;opacity:0.5;
+    animation:mmCodedrift 60s linear infinite;text-shadow:0 0 14px currentColor;}
+  .coderain.cr2 pre{animation-duration:82s;opacity:0.34;font-size:13px;}
+  .coderain.cr3 pre{font-size:10px;}
+  @keyframes mmCodedrift{ 0%{transform:translateY(0);} 100%{transform:translateY(-50%);} }
+  .mm-tok-kw{color:#c678dd;} .mm-tok-fn{color:#61afef;} .mm-tok-str{color:#98c379;}
+  .mm-tok-type{color:#56b6c2;} .mm-tok-var{color:#e5c07b;} .mm-tok-cmt{color:#7f848e;} .mm-tok-pn{color:#8a94a3;}
+
+  @media (max-width: 900px){
+    .brand p{display:none;}
+    .hbtn .lbl{display:none;}
+  }
+  @media (max-width: 760px){
+    .date-nav select{max-width:150px;font-size:14.5px;}
+  }
+  /* スマホ: ヘッダーを2段にし、日付切替を2段目いっぱいに置く */
+  @media (max-width: 600px){
+    header{flex-wrap:wrap;row-gap:8px;padding:8px 10px;gap:8px;}
+    .date-nav{order:10;width:100%;}
+    .date-nav select{flex:1;max-width:none;}
+    .hbtn{min-width:42px;height:42px;padding:0 10px;}
+    main{padding:8px;}
+    .panel-head{flex-wrap:wrap;padding:8px 10px;row-gap:8px;}
+    .panel-head .ttl{flex:1 1 calc(100% - 50px);}
+    .panel-head .badges{margin-right:auto;}
+    .toast{white-space:normal;width:max-content;max-width:calc(100% - 24px);text-align:center;}
+    .panel-body{padding:8px;}
+    .alert-row{padding:6px 10px 0;}
+    .search-row{padding:8px 10px 0;}
+  }
+  @media (max-width: 420px){ .brand{display:none;} }
+</style>
+</head>
+<body>
+<div class="noise-overlay"></div>
+<div class="mesh"></div>
+<div class="page-glow"></div>
+<div class="coderain cr1"><pre id="mmRainText1"></pre></div>
+<div class="coderain cr2"><pre id="mmRainText2"></pre></div>
+<div class="coderain cr3"><pre id="mmRainText3"></pre></div>
+<div id="app">
+  <header class="topbar">
+    <div class="brand-mark">📰</div>
+    <div class="brand"><h1>ニュース閲覧ボード</h1><p>企業・IT・AI の毎日のニュース</p></div>
+    <div class="spacer"></div>
+    <div class="date-nav">
+      <button class="hbtn" id="prevDate" title="前の日">◀</button>
+      <select id="dateSel"></select>
+      <button class="hbtn" id="nextDate" title="次の日">▶</button>
+    </div>
+    <button class="hbtn" id="searchBtn" title="全日付から検索">🔍<span class="lbl">検索</span></button>
+    <button class="hbtn" id="unreadBtn" title="未読の記事だけを表示">◉<span class="lbl">未読のみ</span></button>
+    <!-- ボタンの並び: 検索 → 未読のみ → Drive → 最大化 → 設定 -->
+    <button class="hbtn primary" id="driveQuickBtn" title="Googleドライブから最新のニュースを読み込む">☁<span class="lbl"> Drive</span></button>
+    <button class="hbtn" id="fsBtn" title="最大化（全画面表示）">⛶</button>
+    <button class="hbtn" id="settingsBtn" title="設定">⚙<span class="lbl"> 設定</span></button>
+  </header>
+  <div class="alert-row"><div class="header-alert" id="headerAlert"><div class="header-alert-track" id="headerAlertTrack"></div></div></div>
+  <div class="search-row" id="searchRow">
+    <input type="search" id="searchInput" placeholder="キーワード（スペース区切りで絞り込み）" autocomplete="off" enterkeyhint="search">
+    <button class="hbtn" id="searchClear">✕ 閉じる</button>
+  </div>
+  <main id="main"></main>
+  <nav class="tabbar" id="tabbar">
+    <button class="tab col-corp" data-tab="corp"><span class="ti">🏢</span>企業<span class="tb hide"></span></button>
+    <button class="tab col-it" data-tab="it"><span class="ti">💻</span>IT<span class="tb hide"></span></button>
+    <button class="tab col-ai" data-tab="ai"><span class="ti">🤖</span>AI<span class="tb hide"></span></button>
+    <button class="tab col-fav" data-tab="fav"><span class="ti">★</span>お気に入り<span class="tb hide"></span></button>
+  </nav>
+</div>
+<input type="file" id="fileInput" multiple accept=".md,text/markdown,text/plain,*/*" style="display:none">
+<div class="toast" id="toast"></div>
+
+<!-- 設定（データ／着せ替え／表示サイズ／保存データの削除） -->
+<div class="overlay" id="settingsSheet">
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <h3>⚙ 設定</h3>
+
+    <h4>📂 データ</h4>
+    <!-- Googleドライブの指定フォルダからニュースをまとめて読み込む（https のアプリ版でだけ使える） -->
+    <div class="drive-box">
+      <div class="drive-head"><b>☁ Googleドライブ</b><span class="sub" id="driveStatus"></span></div>
+      <button class="hbtn primary" id="driveLoadBtn">☁ Driveから読み込む</button>
+      <details id="driveSettings">
+        <summary>Drive連携の設定</summary>
+        <label class="drive-field">クライアントID（Google Cloud で作ったもの。スケジュールカンバンボードと同じでよい）
+          <input type="text" id="driveClientId" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="drive-field">ニュースフォルダのURL（Googleドライブでフォルダを開いたときのアドレス）
+          <input type="text" id="driveFolder" placeholder="https://drive.google.com/drive/folders/..." autocomplete="off" spellcheck="false">
+        </label>
+        <div class="sheet-actions" style="margin-top:8px;">
+          <button class="hbtn" id="driveSignOut">ログイン情報を消す</button>
+          <button class="hbtn primary" id="driveSave">保存</button>
+        </div>
+      </details>
+    </div>
+    <div class="btn-col">
+      <button class="hbtn" id="pickBtn">📁 ファイルを選んで読み込む（Driveを使わないとき）</button>
+    </div>
+    <p class="data-info" id="dataInfo"></p>
+    <p class="hint">
+      PCの「ニュース」フォルダを Googleドライブ（パソコン版）で同期し、そのフォルダのURLを上に入れます。<br>
+      アプリを開いたときと、アプリに戻ったときに最新のニュースを自動で読み込みます（5分に1回まで）。☁ を押すといつでも読み込めます。<br>
+      Googleのログインは約1時間で切れます。切れているときは ☁ を押してください。<br>
+      読み込んだニュースはこのタブレットに保存され（直近90日分）、電波がないときも読めます。
+    </p>
+
+    <h4>🎨 着せ替え</h4>
+    <div class="theme-list" id="themeList">
+      <button class="theme-item" data-value="">標準</button>
+      <button class="theme-item" data-value="accessibility">1. アクセシビリティ重視</button>
+      <button class="theme-item" data-value="dark">2. ダークモード</button>
+      <button class="theme-item" data-value="minimal">3. ミニマリズム</button>
+      <button class="theme-item" data-value="texture">4. 色彩と質感</button>
+      <button class="theme-item" data-value="mainmenu">5. アクティブ①</button>
+      <button class="theme-item" data-value="active2">6. アクティブ②</button>
+    </div>
+
+    <h4>🔍 表示サイズ</h4>
+    <div class="zoom-list" id="zoomList"></div>
+
+    <h4>🗑 保存データの削除</h4>
+    <div class="btn-col">
+      <button class="hbtn danger" id="clearNewsBtn">保存したニュースを消す（Driveから読み直せます）</button>
+      <button class="hbtn danger" id="clearMarksBtn">既読と ★お気に入り をすべて消す</button>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="hbtn" id="settingsClose">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =====================================================================
+     定義
+  ===================================================================== */
+  var CATS=[
+    { key:"corp", label:"企業関連ニュース", icon:"🏢" },
+    { key:"it",   label:"IT関連ニュース",   icon:"💻" },
+    { key:"ai",   label:"AI関連ニュース",   icon:"🤖" }
+  ];
+  var TABS=["corp","it","ai","fav"];
+  var NEWS_DIR_HINT="C:\\Users\\rqmu6\\Desktop\\claude\\projects\\右腕AI\\ツールメーカー\\ニュース閲覧ツール\\ニュース";
+  /* PC版と同じキー（同じブラウザなら既読・お気に入りを共有） */
+  var LS_READ="nvt_read_v1", LS_FAV="nvt_fav_v1", LS_FOLD="nvt_fold_v1", LS_UNREAD="nvt_unreadonly_v1", LS_TAB="nvt_tab_tablet_v1";
+  var SECTION_PREFIXES=["顧客","市場","ニュース","企業","業界","技術","政策"];
+  var WEEK=["日","月","火","水","木","金","土"];
+  /* アプリ版はフォルダ連携を使わず、Googleドライブ（またはファイル選択）で読み込んで端末に保存する */
+  var FS_SUPPORTED=false;
+  var LS_APP="nvta_"; /* アプリ版だけの設定（Drive・表示サイズ）の保存名の頭 */
+
+  function lsGet(k,d){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+  var readMap=lsGet(LS_READ,{}), favMap=lsGet(LS_FAV,{}), foldMap=lsGet(LS_FOLD,{});
+  var state={ db:{}, dates:[], date:null, query:"", unreadOnly:!!lsGet(LS_UNREAD,false), status:"init",
+    tab:(TABS.indexOf(lsGet(LS_TAB,"corp"))>=0 ? lsGet(LS_TAB,"corp") : "corp") };
+  var dirHandle=null;
+
+  /* =====================================================================
+     ユーティリティ
+  ===================================================================== */
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function hash(s){ var h=0x811c9dc5; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193); } return (h>>>0).toString(36); }
+  function wd(ymd){ var p=ymd.split("-"); return WEEK[new Date(+p[0],+p[1]-1,+p[2]).getDay()]; }
+  function md(ymd){ var p=(ymd||"").split("-"); return p.length===3 ? (+p[1])+"/"+(+p[2]) : (ymd||""); }
+  function dayDiff(a,b){ var pa=a.split("-"), pb=b.split("-"); return Math.round((new Date(+pa[0],+pa[1]-1,+pa[2]) - new Date(+pb[0],+pb[1]-1,+pb[2]))/86400000); }
+  function hostOf(u){ try{ return new URL(u).hostname; }catch(e){ return ""; } }
+  function safeUrl(u){ return /^https?:\/\//i.test(u||"") ? u : ""; }
+  function toast(msg){ var t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove("show"); }, 2600); }
+  function catByKey(k){ return CATS.filter(function(c){ return c.key===k; })[0]; }
+
+  /* =====================================================================
+     パーサ（PC版と同じ）
+  ===================================================================== */
+  function parseName(name){
+    var m=/^(\d{4}-\d{2}-\d{2})\s*[(（]([^)）]+)[)）]\.md$/i.exec(name);
+    if(!m) return null;
+    var tag=m[2].toLowerCase(), cat=null;
+    if(/customer|corp|company|client|企業|顧客/.test(tag)) cat="corp";
+    else if(/(^|[^a-z])ai([^a-z]|$)/.test(tag)) cat="ai";
+    else if(/(^|[^a-z])it([^a-z]|$)/.test(tag)) cat="it";
+    return cat ? { date:m[1], cat:cat } : null;
+  }
+  function splitHeading(h){
+    var prefix="", title=h, sub="";
+    var m=/^([^:：]{1,8})[:：]\s*(.+)$/.exec(title);
+    if(m && SECTION_PREFIXES.indexOf(m[1].trim())>=0){ prefix=m[1].trim(); title=m[2]; }
+    var m2=/^(.+?)[:：]\s*(.+)$/.exec(title);
+    if(m2){ title=m2[1].trim(); sub=m2[2].trim(); }
+    return { prefix:prefix, title:title.trim(), sub:sub };
+  }
+  function parseItem(line){
+    var parts=line.replace(/^\s*[-*]\s+/,"").split(/\s+\|\s+/);
+    if(parts.length<2) return null;
+    var url="", last=parts[parts.length-1];
+    var um=/\((https?:\/\/[^)\s]+)\)/.exec(last) || /\[(https?:\/\/[^\]\s]+)\]/.exec(last) || /(https?:\/\/\S+)/.exec(last);
+    if(um){ url=um[1]; parts.pop(); }
+    var date="";
+    if(/^\d{4}-\d{2}-\d{2}$/.test(parts[0].trim())) date=parts.shift().trim();
+    var title=(parts.shift()||"").trim();
+    var source=parts.length ? parts.pop().trim() : "";
+    var summary=parts.join(" | ").trim();
+    if(!title) return null;
+    return { date:date, title:title, summary:summary, source:source, url:url, id:hash(title+"|"+url) };
+  }
+  function parseMd(text){
+    var out={ title:"", meta:"", sections:[] }, cur=null;
+    text.replace(/\r/g,"").split("\n").forEach(function(line){
+      var t=line.trim();
+      if(!t) return;
+      if(/^#\s+/.test(t)){ out.title=t.replace(/^#\s+/,""); return; }
+      if(/^>\s*/.test(t) && !out.sections.length){ out.meta=t.replace(/^>\s*/,""); return; }
+      if(/^##+\s+/.test(t)){
+        var h=splitHeading(t.replace(/^##+\s+/,""));
+        cur={ prefix:h.prefix, title:h.title, sub:h.sub, items:[] };
+        out.sections.push(cur); return;
+      }
+      if(/^[-*]\s+/.test(t)){
+        var it=parseItem(t);
+        if(!it) return;
+        if(!cur){ cur={ prefix:"", title:"ニュース", sub:"", items:[] }; out.sections.push(cur); }
+        cur.items.push(it);
+      }
+    });
+    return out;
+  }
+
+  /* =====================================================================
+     フォルダ読込 (File System Access API / ハンドルは IndexedDB に保存)
+  ===================================================================== */
+  function idbOpen(){
+    return new Promise(function(resolve, reject){
+      var req=indexedDB.open("nvt_filehandles_db", 2);
+      req.onupgradeneeded=function(){
+        var db=req.result;
+        if(!db.objectStoreNames.contains("handles")) db.createObjectStore("handles");
+        if(!db.objectStoreNames.contains("files")) db.createObjectStore("files"); /* ファイル選択で読んだニュースの保管（Android 等） */
+      };
+      req.onsuccess=function(){ resolve(req.result); };
+      req.onerror=function(){ reject(req.error); };
+    });
+  }
+  function idbSet(key, val){
+    return idbOpen().then(function(db){ return new Promise(function(resolve, reject){
+      var tx=db.transaction("handles","readwrite"); tx.objectStore("handles").put(val, key);
+      tx.oncomplete=function(){ resolve(); }; tx.onerror=function(){ reject(tx.error); };
+    }); });
+  }
+  function idbGet(key){
+    return idbOpen().then(function(db){ return new Promise(function(resolve, reject){
+      var tx=db.transaction("handles","readonly"); var req=tx.objectStore("handles").get(key);
+      req.onsuccess=function(){ resolve(req.result); }; req.onerror=function(){ reject(req.error); };
+    }); });
+  }
+
+  /* ---------- ファイル選択モード（フォルダ連携に対応していない Android 等） ----------
+     Googleドライブなどから選んだ md を端末内(IndexedDB)に保管し、次回は開くだけで表示する。
+     毎日その日のファイルだけ追加すればよい。保管は直近 CACHE_DAYS 日分。 */
+  var CACHE_DAYS=90;
+  function cacheAll(){
+    return idbOpen().then(function(db){ return new Promise(function(resolve, reject){
+      var out=[], tx=db.transaction("files","readonly"), req=tx.objectStore("files").openCursor();
+      req.onsuccess=function(){ var c=req.result; if(c){ out.push(c.value); c.continue(); } else resolve(out); };
+      req.onerror=function(){ reject(req.error); };
+    }); });
+  }
+  function cacheLimitStr(){
+    var limit=new Date(); limit.setDate(limit.getDate()-CACHE_DAYS);
+    return limit.getFullYear()+"-"+String(limit.getMonth()+1).padStart(2,"0")+"-"+String(limit.getDate()).padStart(2,"0");
+  }
+  function cacheClear(){
+    return idbOpen().then(function(db){ return new Promise(function(resolve, reject){
+      var tx=db.transaction("files","readwrite"); tx.objectStore("files").clear();
+      tx.oncomplete=function(){ resolve(); }; tx.onerror=function(){ reject(tx.error); };
+    }); });
+  }
+  function cachePut(files){
+    var limitStr=cacheLimitStr();
+    return idbOpen().then(function(db){ return new Promise(function(resolve, reject){
+      var tx=db.transaction("files","readwrite"), st=tx.objectStore("files");
+      files.forEach(function(f){ st.put(f, f.name); });
+      var req=st.openCursor();
+      req.onsuccess=function(){ var c=req.result; if(!c) return; var n=parseName(c.key); if(n && n.date<limitStr) c.delete(); c.continue(); };
+      tx.oncomplete=function(){ resolve(); }; tx.onerror=function(){ reject(tx.error); };
+    }); });
+  }
+  var memFiles={}; /* IndexedDB が使えない環境用の控え */
+  /* 読み込んだファイルを端末に保存して表示し直す。最新日を見ていたら、新しい最新日へ移る。戻り値: 端末に保存できたか */
+  async function addFiles(files){
+    var wasLatest=!state.date || state.date===state.dates[0];
+    files.forEach(function(f){ memFiles[f.name]=f; });
+    var all=null, saved=true;
+    try{ await cachePut(files); all=await cacheAll(); }catch(e){ saved=false; }
+    if(!all) all=Object.keys(memFiles).map(function(k){ return memFiles[k]; });
+    buildDb(all);
+    if(wasLatest) state.date=state.dates[0]||null;
+    state.status=state.dates.length?"ready":"nofiles";
+    render();
+    return saved;
+  }
+  async function loadPicked(list){
+    var files=[], skipped=0;
+    for(var i=0;i<list.length;i++){
+      if(!parseName(list[i].name)){ skipped++; continue; }
+      files.push({ name:list[i].name, lastModified:list[i].lastModified, text:await list[i].text() });
+    }
+    if(!files.length){ toast("ニュースファイルがありません（YYYY-MM-DD(xxx_news).md 形式）"); return; }
+    var saved=await addFiles(files);
+    toast(!saved ? "表示しました（この端末には保存できないため、次回も選択が必要です）"
+        : files.length+"件を追加しました（計"+state.dates.length+"日分）"+(skipped?"・対象外 "+skipped+"件":""));
+  }
+
+  async function readDir(dir){
+    var files=[];
+    for await (var entry of dir.values()){
+      if(entry.kind!=="file" || !/\.md$/i.test(entry.name)) continue;
+      var f=await entry.getFile();
+      files.push({ name:entry.name, lastModified:f.lastModified, text:await f.text() });
+    }
+    return files;
+  }
+  async function resolveNewsDir(dir){
+    try{ return await dir.getDirectoryHandle("ニュース"); }catch(e){ return dir; }
+  }
+
+  function buildDb(files){
+    var db={}, skipped=0;
+    files.sort(function(a,b){ return a.lastModified-b.lastModified; });
+    files.forEach(function(f){
+      var n=parseName(f.name);
+      if(!n){ skipped++; return; }
+      (db[n.date]=db[n.date]||{})[n.cat]=parseMd(f.text);
+    });
+    state.db=db;
+    state.dates=Object.keys(db).sort().reverse();
+    if(!state.date || !db[state.date]) state.date=state.dates[0]||null;
+    return skipped;
+  }
+
+  async function reload(silent){
+    if(!dirHandle) return;
+    try{
+      var prevLatest=state.dates[0];
+      var files=await readDir(dirHandle);
+      var keepDate=state.date;
+      var skipped=buildDb(files);
+      if(keepDate && keepDate===prevLatest && state.dates[0]!==prevLatest) state.date=state.dates[0];
+      state.status=state.dates.length?"ready":"nofiles";
+      render();
+      if(!silent) toast("読み込みました（"+state.dates.length+"日分"+(skipped?"・対象外 "+skipped+"件":"")+"）");
+    }catch(e){
+      state.status="reconnect"; render();
+    }
+  }
+  async function linkFolder(){
+    if(!FS_SUPPORTED){ document.getElementById("fileInput").click(); return; }
+    var dir;
+    try{ dir=await window.showDirectoryPicker({ id:"nvtNews", mode:"read", startIn:"desktop" }); }catch(e){ return; }
+    dirHandle=await resolveNewsDir(dir);
+    try{ await idbSet("newsDir", dirHandle); }catch(e){}
+    state.date=null;
+    await reload();
+  }
+  async function reconnect(){
+    if(!dirHandle) return linkFolder();
+    try{
+      var p=await dirHandle.requestPermission({ mode:"read" });
+      if(p==="granted") await reload(); else toast("フォルダへのアクセスが許可されませんでした");
+    }catch(e){ linkFolder(); }
+  }
+  async function restore(){
+    if(!FS_SUPPORTED){
+      var cached=[];
+      try{ cached=await cacheAll(); }catch(e){}
+      buildDb(cached);
+      state.status=state.dates.length?"ready":"unsupported";
+      render(); return;
+    }
+    var h=null;
+    try{ h=await idbGet("newsDir"); }catch(e){}
+    if(!h){ state.status="unlinked"; render(); return; }
+    dirHandle=h;
+    var p="prompt";
+    try{ p=await h.queryPermission({ mode:"read" }); }catch(e){}
+    if(p==="granted") await reload(true);
+    else { state.status="reconnect"; render(); }
+  }
+
+  document.getElementById("fileInput").addEventListener("change", async function(e){
+    var list=Array.prototype.slice.call(e.target.files||[]);
+    e.target.value="";
+    if(list.length) await loadPicked(list);
+  });
+
+  /* =====================================================================
+     表示データの組み立て
+  ===================================================================== */
+  function queryTerms(){ return state.query.trim().toLowerCase().split(/\s+/).filter(Boolean); }
+  function matches(it, sec, terms){
+    var hay=(it.title+" "+it.summary+" "+it.source+" "+(sec?sec.title+" "+sec.sub+" "+sec.prefix:"")).toLowerCase();
+    return terms.every(function(t){ return hay.indexOf(t)>=0; });
+  }
+  function withFile(it, fileDate, cat){ var o={}; for(var k in it) o[k]=it[k]; o.fileDate=fileDate; o.cat=cat; return o; }
+
+  function viewFor(tab){
+    var terms=queryTerms();
+    if(tab==="fav"){
+      var secs=CATS.map(function(c){
+        var items=Object.keys(favMap).map(function(id){ return favMap[id]; })
+          .filter(function(f){ return f.cat===c.key && (!terms.length || matches(f.item,null,terms)); })
+          .sort(function(a,b){ return b.addedAt-a.addedAt; })
+          .map(function(f){ return withFile(f.item, f.fileDate, f.cat); });
+        return { key:"fav|"+c.key, prefix:c.icon, title:c.label, sub:"", items:items };
+      }).filter(function(s){ return s.items.length; });
+      return { meta:"★を付けた記事（新しく付けた順）", showFile:true, sections:secs };
+    }
+    if(terms.length){
+      var seen={}, hits=[];
+      state.dates.forEach(function(d){
+        var doc=state.db[d][tab]; if(!doc) return;
+        doc.sections.forEach(function(sec){
+          sec.items.forEach(function(it){
+            if(seen[it.id] || !matches(it, sec, terms)) return;
+            seen[it.id]=true; hits.push(withFile(it, d, tab));
+          });
+        });
+      });
+      return { meta:"全"+state.dates.length+"日分から検索", showFile:true, sections:hits.length?[{ key:"search", prefix:"検索", title:"「"+state.query.trim()+"」の結果", sub:"", items:hits }]:[] };
+    }
+    var doc=state.date && state.db[state.date] ? state.db[state.date][tab] : null;
+    if(!doc) return { meta:"", showFile:false, sections:null };
+    return { meta:doc.meta, showFile:false, sections:doc.sections.map(function(sec){
+      return { key:tab+"|"+sec.prefix+"|"+sec.title, prefix:sec.prefix, title:sec.title, sub:sec.sub, items:sec.items.map(function(it){ return withFile(it, state.date, tab); }) };
+    }) };
+  }
+  function countFor(tab){
+    var v=viewFor(tab), total=0, unread=0;
+    (v.sections||[]).forEach(function(s){ s.items.forEach(function(it){ total++; if(!readMap[it.id]) unread++; }); });
+    return { total:total, unread:unread };
+  }
+
+  /* =====================================================================
+     描画
+  ===================================================================== */
+  function hl(text, terms){
+    var s=esc(text);
+    if(!terms.length) return s;
+    terms.forEach(function(t){
+      var re=new RegExp(esc(t).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi");
+      s=s.replace(/(<[^>]*>)|([^<]+)/g, function(all, tag, txt){ return tag ? tag : txt.replace(re, function(x){ return "<mark>"+x+"</mark>"; }); });
+    });
+    return s;
+  }
+
+  function cardHtml(it, showFile, terms){
+    var read=!!readMap[it.id], fav=!!favMap[it.id], url=safeUrl(it.url);
+    var isNew=it.date && it.fileDate && dayDiff(it.fileDate, it.date)<=1 && !showFile;
+    return '<article class="ncard c-'+it.cat+(read?" read":"")+'" data-id="'+it.id+'">'+
+      '<div class="nc-top">'+
+        (it.date?'<span class="nc-date">'+esc(md(it.date))+'</span>':'')+
+        (isNew?'<span class="nc-new">NEW</span>':'')+
+        '<span class="nc-src">'+hl(it.source,terms)+'</span>'+
+        (showFile?'<span class="nc-file">'+esc(md(it.fileDate))+'版</span>':'')+
+        '<button class="nc-star'+(fav?" on":"")+'" data-act="star">'+(fav?"★":"☆")+'</button>'+
+      '</div>'+
+      (url?'<a class="nc-title" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" data-act="open">'+hl(it.title,terms)+'</a>'
+          :'<span class="nc-title">'+hl(it.title,terms)+'</span>')+
+      (it.summary?'<p class="nc-sum">'+hl(it.summary,terms)+'</p>':'')+
+      '<div class="nc-foot"><span class="nc-host">'+esc(hostOf(url))+'</span>'+
+        '<button class="nc-readbtn" data-act="read">'+(read?"未読に戻す":"既読にする")+'</button></div>'+
+    '</article>';
+  }
+
+  function panelHtml(tab){
+    var v=viewFor(tab), terms=queryTerms(), total=0, unread=0, body="";
+    var cat=catByKey(tab), label=cat?cat.label:"お気に入り", icon=cat?cat.icon:"★";
+    if(v.sections===null){
+      body='<div class="empty-col">この日の'+esc(label)+'ファイルはありません</div>';
+    }else{
+      v.sections.forEach(function(sec){
+        var items=sec.items;
+        total+=items.length;
+        var secUnread=items.filter(function(it){ return !readMap[it.id]; }).length;
+        unread+=secUnread;
+        if(state.unreadOnly) items=items.filter(function(it){ return !readMap[it.id]; });
+        if(!items.length) return;
+        var folded=!!foldMap[sec.key];
+        body+='<section class="sec'+(folded?" folded":"")+'" data-key="'+esc(sec.key)+'">'+
+          '<div class="sec-head" data-act="fold"><span class="sec-fold">▼</span>'+
+            (sec.prefix?'<span class="sec-tag">'+esc(sec.prefix)+'</span>':'')+
+            '<div class="sec-ttl"><b>'+esc(sec.title)+'</b>'+(sec.sub?'<small>'+esc(sec.sub)+'</small>':'')+'</div>'+
+            '<span class="sec-cnt">'+(secUnread?'<em>'+secUnread+'</em> / ':'')+sec.items.length+'件</span>'+
+          '</div>'+
+          '<div class="sec-items">'+items.map(function(it){ return cardHtml(it, v.showFile, terms); }).join("")+'</div>'+
+        '</section>';
+      });
+      if(!body){
+        body='<div class="empty-col">'+(tab==="fav"?"★を付けた記事はまだありません"
+          : terms.length?"該当する記事はありません"
+          : state.unreadOnly&&total?"未読の記事はありません 🎉":"記事がありません")+'</div>';
+      }
+    }
+    return '<div class="panel col-'+tab+'" data-cat="'+tab+'">'+
+      '<div class="panel-head"><div class="cat-ico">'+icon+'</div>'+
+        '<div class="ttl"><h2>'+esc(label)+'</h2><span class="sub">'+esc(v.meta||"")+'</span></div>'+
+        '<div class="badges"><span class="tcb tcb-unread'+(unread?"":" zero")+'">未読 '+unread+'</span><span class="tcb tcb-total">全 '+total+'</span></div>'+
+        '<button class="hbtn readall" data-act="readall" '+(unread?"":"disabled")+'>全既読</button>'+
+        '<button class="hbtn readall" data-act="unreadall" '+(total>unread?"":"disabled")+'>全未読</button>'+
+      '</div>'+
+      '<div class="panel-body">'+body+'</div>'+
+    '</div>';
+  }
+
+  function setupHtml(){
+    var s=state.status, h, p, btn;
+    if(s==="reconnect"){ h="フォルダへの再接続が必要です"; p="ブラウザを開き直したため、フォルダの読み取り許可をもう一度求めます。"; btn='<button class="hbtn primary" id="setupReconnect">🔓 再接続する</button>'; }
+    else if(s==="nofiles"){ h="ニュースファイルが見つかりません"; p="「YYYY-MM-DD(customer_news).md」「(it_news)」「(ai_news)」形式のファイルがありません。"; btn='<button class="hbtn primary" id="setupLink">📁 '+(FS_SUPPORTED?"フォルダを選び直す":"ファイルを選び直す")+'</button>'; }
+    else if(s==="init"){ return '<div class="panel setup"><p>読み込み中…</p></div>'; }
+    else if(driveConfigured()){ h="Googleドライブから読み込みます"; p="☁ を押すと、Googleのログイン後にニュースフォルダの最新ファイルを読み込みます。";
+      btn='<div class="btn-pair"><button class="hbtn primary" id="setupDrive">☁ Driveから読み込む</button><button class="hbtn" id="setupSettings">⚙ 設定</button></div>'; }
+    else { h="Googleドライブを設定してください";
+      p="⚙ 設定 →「Drive連携の設定」に、クライアントIDとニュースフォルダのURLを入れると、開くだけで最新のニュースを読み込みます。<br>Driveを使わないときは「📁 ファイルを選択」で md ファイルを選んでください。";
+      btn='<div class="btn-pair"><button class="hbtn primary" id="setupSettings">⚙ 設定を開く</button><button class="hbtn" id="setupLink">📁 ファイルを選択</button></div>'; }
+    return '<div class="panel setup"><h2>'+h+'</h2><p>'+p+'</p><code>'+esc(NEWS_DIR_HINT)+'</code><br>'+btn+'</div>';
+  }
+
+  function renderHeader(){
+    var sel=document.getElementById("dateSel");
+    sel.innerHTML=state.dates.map(function(d){
+      return '<option value="'+d+'"'+(d===state.date?" selected":"")+'>'+md(d)+'('+wd(d)+')'+(d===state.dates[0]?" 最新":"")+'</option>';
+    }).join("");
+    var idx=state.dates.indexOf(state.date), busy=!!(state.tab==="fav"||queryTerms().length);
+    sel.disabled=!state.dates.length||busy;
+    document.getElementById("prevDate").disabled=busy||idx<0||idx>=state.dates.length-1;
+    document.getElementById("nextDate").disabled=busy||idx<=0;
+    document.getElementById("unreadBtn").classList.toggle("on", state.unreadOnly);
+    document.getElementById("searchBtn").classList.toggle("on", document.getElementById("searchRow").classList.contains("open"));
+    document.querySelectorAll("#tabbar .tab").forEach(function(t){
+      var k=t.getAttribute("data-tab"), b=t.querySelector(".tb");
+      t.classList.toggle("active", k===state.tab);
+      if(state.status!=="ready"){ b.classList.add("hide"); return; }
+      var c=countFor(k), n=(k==="fav")?c.total:c.unread;
+      b.textContent=n>99?"99+":n;
+      b.classList.toggle("hide", !n);
+    });
+    renderMarquee();
+  }
+
+  function renderMarquee(){
+    var box=document.getElementById("headerAlert"), track=document.getElementById("headerAlertTrack");
+    var latest=state.dates[0], parts=[];
+    if(latest){
+      CATS.forEach(function(c){
+        var doc=state.db[latest][c.key]; if(!doc) return;
+        var n=0, first=null;
+        doc.sections.forEach(function(s){ s.items.forEach(function(it){ if(!readMap[it.id]){ n++; if(!first) first=it; } }); });
+        if(first) parts.push(c.icon+" "+c.label.replace("ニュース","")+" 未読"+n+"件 ─ "+first.title);
+      });
+    }
+    var text=parts.length ? "【"+md(latest)+"版】 "+parts.join("　／　") : (latest?"✓ "+md(latest)+"版のニュースはすべて既読です":"");
+    if(track.textContent===text) return;
+    track.textContent=text;
+    var w=track.scrollWidth, bw=box.clientWidth;
+    track.style.setProperty("--startX", bw+"px");
+    track.style.setProperty("--endX", (-w)+"px");
+    track.style.animationDuration=Math.max(12, (w+bw)/70)+"s, 2.4s";
+  }
+
+  function render(keepScroll){
+    renderHeader();
+    var main=document.getElementById("main"), body=main.querySelector(".panel-body"), top=body?body.scrollTop:0;
+    if(state.status!=="ready"){ main.innerHTML=setupHtml(); bindSetup(); return; }
+    main.innerHTML=panelHtml(state.tab);
+    if(keepScroll){ var nb=main.querySelector(".panel-body"); if(nb) nb.scrollTop=top; }
+  }
+  function bindSetup(){
+    var a=document.getElementById("setupLink"); if(a) a.onclick=linkFolder;
+    var b=document.getElementById("setupReconnect"); if(b) b.onclick=reconnect;
+    var c=document.getElementById("setupSettings"); if(c) c.onclick=openSettings;
+    var d=document.getElementById("setupDrive"); if(d) d.onclick=driveButton;
+  }
+
+  /* =====================================================================
+     既読・お気に入り
+  ===================================================================== */
+  function findItem(id){
+    for(var i=0;i<state.dates.length;i++){
+      var d=state.dates[i], day=state.db[d];
+      for(var c in day){ var secs=day[c].sections;
+        for(var j=0;j<secs.length;j++){ for(var k=0;k<secs[j].items.length;k++){ if(secs[j].items[k].id===id) return { item:secs[j].items[k], cat:c, fileDate:d }; } } }
+    }
+    return favMap[id]||null;
+  }
+  function setRead(id, on){ if(on) readMap[id]=Date.now(); else delete readMap[id]; lsSet(LS_READ, readMap); }
+  function toggleFav(id){
+    if(favMap[id]){ delete favMap[id]; toast("お気に入りから外しました"); }
+    else{ var f=findItem(id); if(!f) return; favMap[id]={ item:f.item, cat:f.cat, fileDate:f.fileDate, addedAt:Date.now() }; toast("★ お気に入りに追加しました"); }
+    lsSet(LS_FAV, favMap);
+  }
+
+  var main=document.getElementById("main");
+  main.addEventListener("click", function(e){
+    var el=e.target.closest("[data-act]"); if(!el) return;
+    var act=el.getAttribute("data-act"), card=el.closest(".ncard"), id=card?card.getAttribute("data-id"):null;
+    if(act==="open"){ setRead(id,true); setTimeout(function(){ render(true); }, 50); return; }
+    if(act==="star"){ toggleFav(id); render(true); return; }
+    if(act==="read"){ setRead(id, !readMap[id]); render(true); return; }
+    if(act==="fold"){
+      var sec=el.closest(".sec"), key=sec.getAttribute("data-key");
+      if(foldMap[key]) delete foldMap[key]; else foldMap[key]=1;
+      lsSet(LS_FOLD, foldMap); sec.classList.toggle("folded"); return;
+    }
+    if(act==="readall"){
+      viewFor(state.tab).sections.forEach(function(s){ s.items.forEach(function(it){ if(!readMap[it.id]) readMap[it.id]=Date.now(); }); });
+      lsSet(LS_READ, readMap); render(true); toast("すべて既読にしました");
+    }
+    if(act==="unreadall"){
+      viewFor(state.tab).sections.forEach(function(s){ s.items.forEach(function(it){ delete readMap[it.id]; }); });
+      lsSet(LS_READ, readMap); render(true); toast("すべて未読に戻しました");
+    }
+  });
+
+  /* 左右スワイプでタブ切替 */
+  var sx=0, sy=0, st=0;
+  main.addEventListener("touchstart", function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; st=Date.now(); }, { passive:true });
+  main.addEventListener("touchend", function(e){
+    var dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(state.status!=="ready" || Date.now()-st>600 || Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5) return;
+    var i=TABS.indexOf(state.tab)+(dx<0?1:-1);
+    if(i>=0 && i<TABS.length) setTab(TABS[i]);
+  }, { passive:true });
+
+  /* =====================================================================
+     ヘッダー・タブ操作
+  ===================================================================== */
+  function setTab(t){ state.tab=t; lsSet(LS_TAB, t); render(); }
+  document.getElementById("tabbar").addEventListener("click", function(e){
+    var t=e.target.closest(".tab"); if(t) setTab(t.getAttribute("data-tab"));
+  });
+  function moveDate(step){
+    var i=state.dates.indexOf(state.date)+step;
+    if(i<0||i>=state.dates.length) return;
+    state.date=state.dates[i]; render();
+  }
+  document.getElementById("prevDate").onclick=function(){ moveDate(1); };
+  document.getElementById("nextDate").onclick=function(){ moveDate(-1); };
+  document.getElementById("dateSel").onchange=function(e){ state.date=e.target.value; render(); };
+  document.getElementById("unreadBtn").onclick=function(){ state.unreadOnly=!state.unreadOnly; lsSet(LS_UNREAD, state.unreadOnly); render(); };
+
+  var searchRow=document.getElementById("searchRow"), searchInput=document.getElementById("searchInput"), searchTimer=null;
+  function closeSearch(){ searchRow.classList.remove("open"); searchInput.value=""; state.query=""; searchInput.blur(); render(); }
+  document.getElementById("searchBtn").onclick=function(){
+    if(searchRow.classList.contains("open")) return closeSearch();
+    searchRow.classList.add("open"); renderHeader(); searchInput.focus();
+  };
+  document.getElementById("searchClear").onclick=closeSearch;
+  searchInput.addEventListener("input", function(){ clearTimeout(searchTimer); searchTimer=setTimeout(function(){ state.query=searchInput.value; render(); }, 250); });
+  searchInput.addEventListener("keydown", function(e){ if(e.key==="Enter") searchInput.blur(); });
+
+  /* 最大化（全画面表示）: スケジュールカンバンボードのタブレット版と同じ。もう一度押すと元に戻る */
+  var fsBtn=document.getElementById("fsBtn");
+  var fsEl=document.documentElement;
+  if(!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen)) fsBtn.style.display="none";
+  fsBtn.addEventListener("click", function(){
+    var cur=document.fullscreenElement || document.webkitFullscreenElement;
+    if(cur){ (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+    try{
+      var p=(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen).call(fsEl);
+      if(p && p.catch) p.catch(function(){ toast("最大化できませんでした"); });
+    }catch(e){ toast("最大化できませんでした"); }
+  });
+  function onFsChange(){
+    var on=!!(document.fullscreenElement || document.webkitFullscreenElement);
+    fsBtn.classList.toggle("on", on);
+    fsBtn.title=on?"元に戻す":"最大化（全画面表示）";
+    document.getElementById("headerAlertTrack").textContent=""; renderMarquee();
+  }
+  document.addEventListener("fullscreenchange", onFsChange);
+  document.addEventListener("webkitfullscreenchange", onFsChange);
+
+  window.addEventListener("resize", function(){ document.getElementById("headerAlertTrack").textContent=""; renderMarquee(); });
+
+  /* =====================================================================
+     着せ替え（PC版と同じ 標準＋6種。同じブラウザなら選択も共有）
+  ===================================================================== */
+  var LS_THEME="nvt_theme_v1", decorReady=false;
+  function applyTheme(theme){
+    if(theme) document.documentElement.setAttribute("data-theme", theme);
+    else document.documentElement.removeAttribute("data-theme");
+    document.querySelectorAll(".theme-item").forEach(function(el){ el.classList.toggle("active", el.getAttribute("data-value")===theme); });
+    if(theme==="mainmenu" || theme==="active2") initDecor();
+  }
+  /* アクティブ①②の背景に流れるコード（メインメニュー.html と同じ演出） */
+  function initDecor(){
+    if(decorReady) return;
+    decorReady=true;
+    function tok(cls, w){ return '<span class="mm-tok-'+cls+'">'+esc(w)+'</span>'; }
+    var lines=[
+      function(){ return tok("kw","async function")+" "+tok("fn","loadNews")+"("+tok("var","dir")+") {"; },
+      function(){ return "  "+tok("kw","for await")+" ("+tok("kw","const")+" "+tok("var","f")+" "+tok("kw","of")+" "+tok("var","dir")+"."+tok("fn","values")+"()) {"; },
+      function(){ return "    "+tok("kw","if")+" ("+tok("var","f")+"."+tok("var","name")+"."+tok("fn","endsWith")+"("+tok("str",'".md"')+")) "+tok("fn","parse")+"("+tok("var","f")+");"; },
+      function(){ return "  }"; },
+      function(){ return "}"; },
+      function(){ return ""; },
+      function(){ return tok("kw","const")+" "+tok("var","feeds")+" = ["+tok("str",'"customer"')+", "+tok("str",'"it"')+", "+tok("str",'"ai"')+"];"; },
+      function(){ return tok("kw","class")+" "+tok("type","NewsCard")+" "+tok("kw","extends")+" "+tok("type","Component")+" {"; },
+      function(){ return "  "+tok("var","read")+" = "+tok("kw","false")+";"; },
+      function(){ return "  "+tok("fn","onStar")+" = () "+tok("pn","=>")+" "+tok("fn","toggleFav")+"("+tok("kw","this")+"."+tok("var","id")+");"; },
+      function(){ return "}"; },
+      function(){ return tok("cmt","// 今日のニュースを読み込む"); },
+      function(){ return tok("kw","await")+" "+tok("fn","fetch")+"("+tok("str",'"/api/news?date=today"')+");"; },
+      function(){ return tok("kw","type")+" "+tok("type","Article")+" = { "+tok("var","title")+": "+tok("type","string")+"; "+tok("var","url")+": "+tok("type","URL")+" };"; },
+      function(){ return tok("var","unread")+" = "+tok("var","items")+"."+tok("fn","filter")+"("+tok("var","a")+" "+tok("pn","=>")+" !"+tok("var","a")+"."+tok("var","read")+");"; },
+      function(){ return tok("pn","$")+" git pull "+tok("str","origin")+" main"; }
+    ];
+    ["mmRainText1","mmRainText2","mmRainText3"].forEach(function(id){
+      var html="";
+      for(var j=0;j<90;j++) html+=lines[Math.floor(Math.random()*lines.length)]()+"\n";
+      document.getElementById(id).innerHTML=html+html;
+    });
+  }
+  (function(){
+    var stored="";
+    try{ stored=localStorage.getItem(LS_THEME)||""; }catch(e){}
+    applyTheme(stored);
+    document.querySelectorAll("#themeList .theme-item").forEach(function(item){
+      item.addEventListener("click", function(){
+        var theme=item.getAttribute("data-value");
+        applyTheme(theme);
+        try{ localStorage.setItem(LS_THEME, theme); }catch(e){}
+        renderMarquee();
+      });
+    });
+  })();
+
+  /* =====================================================================
+     設定画面（スケジュールカンバンボードのタブレットアプリ版と同じ構成）
+  ===================================================================== */
+  function rawGet(k){ try{ return localStorage.getItem(k)||""; }catch(e){ return ""; } }
+  function rawSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+  function openSettings(){ renderZoomList(); renderDataInfo(); fillDriveForm(); updateDriveUi(); document.getElementById("settingsSheet").classList.add("open"); }
+  function closeSettings(){ document.getElementById("settingsSheet").classList.remove("open"); }
+  document.getElementById("settingsBtn").addEventListener("click", openSettings);
+  document.getElementById("settingsClose").addEventListener("click", closeSettings);
+  document.getElementById("settingsSheet").addEventListener("click", function(e){ if(e.target===this) closeSettings(); });
+  document.getElementById("pickBtn").addEventListener("click", function(){ closeSettings(); document.getElementById("fileInput").click(); });
+  function renderDataInfo(){
+    document.getElementById("dataInfo").textContent=state.dates.length
+      ? "このタブレットに保存中: "+state.dates.length+"日分（"+md(state.dates[state.dates.length-1])+"〜"+md(state.dates[0])+"）"
+      : "このタブレットに保存しているニュースはありません";
+  }
+
+  /* ---- 表示サイズ（タブレットごとに覚える） ---- */
+  var ZOOMS=[0.7,0.8,0.9,1,1.1,1.2];
+  var uiZoom=parseFloat(rawGet(LS_APP+"uiZoom"))||1;
+  function applyZoom(){ document.documentElement.style.setProperty("--ui-zoom", uiZoom); }
+  function renderZoomList(){
+    var wrap=document.getElementById("zoomList");
+    wrap.innerHTML=ZOOMS.map(function(z){ return '<button data-z="'+z+'"'+(z===uiZoom?' class="on"':'')+'>'+Math.round(z*100)+'%</button>'; }).join("");
+  }
+  document.getElementById("zoomList").addEventListener("click", function(e){
+    var b=e.target.closest("button[data-z]"); if(!b) return;
+    uiZoom=parseFloat(b.getAttribute("data-z")); rawSet(LS_APP+"uiZoom", String(uiZoom));
+    applyZoom(); renderZoomList();
+    setTimeout(function(){ document.getElementById("headerAlertTrack").textContent=""; renderMarquee(); }, 50);
+  });
+  applyZoom();
+
+  /* ---- 保存データの削除 ---- */
+  document.getElementById("clearNewsBtn").addEventListener("click", async function(){
+    if(!confirm("このタブレットに保存したニュースをすべて消しますか？\n（既読・★は残ります。Driveから読み直せます）")) return;
+    try{ await cacheClear(); }catch(e){}
+    memFiles={}; buildDb([]); state.date=null; state.status="unsupported";
+    rawSet(LS_APP+"driveLast", "");
+    render(); renderDataInfo(); updateDriveUi(); toast("保存したニュースを消しました");
+  });
+  document.getElementById("clearMarksBtn").addEventListener("click", function(){
+    if(!confirm("既読の記録と ★お気に入り をすべて消しますか？\n（元に戻せません）")) return;
+    readMap={}; favMap={}; lsSet(LS_READ, readMap); lsSet(LS_FAV, favMap);
+    render(); toast("既読と ★お気に入り を消しました");
+  });
+
+  /* =====================================================================
+     GOOGLE DRIVE: 指定フォルダのニュースファイル（YYYY-MM-DD(xxx_news).md）を読み込む。
+     Google のログイン（Google Identity Services）で読み取り専用の許可をもらい、Drive API から直接取得する。
+     データは Google → このタブレットに直接届く（ほかのサーバーは通らない）。アプリ版（https）でだけ使える。
+     前回から変わっていないファイルは読み直さない。
+  ===================================================================== */
+  var DRIVE_SCOPE="https://www.googleapis.com/auth/drive.readonly";
+  var DRIVE_AUTO_INTERVAL=5*60*1000; // 開いたとき・戻ったときの自動読込は5分に1回まで
+  var driveTokenClient=null, driveBusy=false, driveLastAuto=0;
+  /* クライアントIDは、未入力ならスケジュールカンバンボード（同じ asmori.github.io）で入れたものを使う */
+  function driveCfg(){ return { clientId:(rawGet(LS_APP+"driveClientId")||rawGet("skbt_driveClientId")).trim(), folder:rawGet(LS_APP+"driveFolder").trim() }; }
+  function driveFolderId(v){
+    var m=v.match(/folders\/([\w-]+)/) || v.match(/[?&]id=([\w-]+)/);
+    if(m) return m[1];
+    return /^[\w-]{10,}$/.test(v) ? v : "";
+  }
+  function driveSupported(){ return location.protocol==="https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname); }
+  function driveConfigured(){ var c=driveCfg(); return !!(c.clientId && driveFolderId(c.folder)); }
+  function driveSavedToken(){
+    try{ var t=JSON.parse(rawGet(LS_APP+"driveToken")||"null"); return (t && t.exp>Date.now()) ? t.token : null; }catch(e){ return null; }
+  }
+  function stampStr(ms){ var d=new Date(ms); return (d.getMonth()+1)+"/"+d.getDate()+" "+d.getHours()+":"+String(d.getMinutes()).padStart(2,"0"); }
+  function updateDriveUi(msg){
+    var ok=driveSupported() && driveConfigured();
+    document.documentElement.classList.toggle("drive-ready", ok);
+    var last=parseInt(rawGet(LS_APP+"driveLast"),10);
+    document.getElementById("driveStatus").textContent=msg ||
+      (!driveSupported() ? "アプリ版（https のページ）でだけ使えます"
+        : !driveConfigured() ? "下の「Drive連携の設定」を入力してください"
+        : (last ? "最終取得 "+stampStr(last) : "未取得"));
+    document.getElementById("driveLoadBtn").disabled=!ok || driveBusy;
+    document.getElementById("driveQuickBtn").classList.toggle("busy", driveBusy);
+  }
+  function fillDriveForm(){
+    var c=driveCfg();
+    document.getElementById("driveClientId").value=c.clientId;
+    document.getElementById("driveFolder").value=c.folder;
+    if(!driveConfigured()) document.getElementById("driveSettings").open=true;
+  }
+  /* Google のログイン部品を先に読み込んでおく（ボタンを押した瞬間に許可画面を出すため） */
+  function prepareDriveAuth(){
+    if(!driveSupported() || !driveConfigured() || driveTokenClient) return Promise.resolve();
+    return new Promise(function(resolve){
+      function init(){
+        try{ driveTokenClient=google.accounts.oauth2.initTokenClient({ client_id:driveCfg().clientId, scope:DRIVE_SCOPE, callback:function(){} }); }
+        catch(e){ driveTokenClient=null; }
+        resolve();
+      }
+      if(window.google && google.accounts && google.accounts.oauth2){ init(); return; }
+      var s=document.createElement("script");
+      s.src="https://accounts.google.com/gsi/client"; s.async=true;
+      s.onload=init; s.onerror=function(){ resolve(); };
+      document.head.appendChild(s);
+    });
+  }
+  /* 保存済みの許可が有効ならそれを使い、なければ Google の許可画面を出す（ボタン操作から呼ぶ） */
+  function requestDriveToken(){
+    var saved=driveSavedToken();
+    if(saved) return Promise.resolve(saved);
+    if(!driveTokenClient) return Promise.reject(new Error("auth-not-ready"));
+    return new Promise(function(resolve, reject){
+      driveTokenClient.callback=function(resp){
+        if(!resp || resp.error || !resp.access_token){ reject(new Error(resp && resp.error || "auth")); return; }
+        rawSet(LS_APP+"driveToken", JSON.stringify({ token:resp.access_token, exp:Date.now()+((+resp.expires_in||3600)-60)*1000 }));
+        rawSet(LS_APP+"driveConsented", "1");
+        resolve(resp.access_token);
+      };
+      driveTokenClient.error_callback=function(err){ reject(new Error(err && err.type || "auth")); };
+      driveTokenClient.requestAccessToken({ prompt: rawGet(LS_APP+"driveConsented")==="1" ? "" : "consent" });
+    });
+  }
+  async function driveFetch(url, token){
+    var res=await fetch(url, { headers:{ Authorization:"Bearer "+token } });
+    if(res.status===401){ rawSet(LS_APP+"driveToken", ""); throw new Error("expired"); }
+    if(!res.ok) throw new Error("http-"+res.status);
+    return res;
+  }
+  function showDriveError(e){
+    var m=String(e && e.message);
+    toast(m==="expired" ? "Googleのログインが切れました。もう一度 ☁ を押してください"
+      : m==="auth-not-ready" ? "Googleのログイン部品を読み込めませんでした。電波を確認して、もう一度 ☁ を押してください"
+      : (m==="http-404" || m==="http-403") ? "Driveのフォルダを開けませんでした（URLとアクセス権を確認してください）"
+      : /popup|auth|access_denied/.test(m) ? "Googleのログインが完了しませんでした"
+      : "Driveとやりとりできませんでした（"+m+"）");
+  }
+  /* フォルダのニュースファイルを一覧し、新しいもの・更新されたものだけ取得して保存する */
+  async function syncFromDrive(token, silent){
+    driveBusy=true; updateDriveUi("読み込み中…");
+    try{
+      var folderId=driveFolderId(driveCfg().folder);
+      var q=encodeURIComponent("'"+folderId+"' in parents and trashed=false");
+      var list=[], pageToken="";
+      do{
+        var j=await (await driveFetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=nextPageToken,files(id,name,modifiedTime)&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true"+(pageToken?"&pageToken="+encodeURIComponent(pageToken):""), token)).json();
+        list=list.concat(j.files||[]); pageToken=j.nextPageToken||"";
+      }while(pageToken);
+      var limitStr=cacheLimitStr();
+      var targets=list.filter(function(f){ var n=parseName(f.name); return n && n.date>=limitStr; });
+      rawSet(LS_APP+"driveLast", String(Date.now()));
+      if(!targets.length){ if(!silent) toast("フォルダにニュースファイル（YYYY-MM-DD(xxx_news).md）が見つかりませんでした"); return; }
+      var cached={};
+      try{ (await cacheAll()).forEach(function(c){ cached[c.name]=c; }); }catch(e){ cached=memFiles; }
+      var fresh=[];
+      for(var i=0;i<targets.length;i++){
+        var f=targets[i], c=cached[f.name];
+        if(c && c.driveModified===f.modifiedTime) continue;
+        var text=await (await driveFetch("https://www.googleapis.com/drive/v3/files/"+f.id+"?alt=media&supportsAllDrives=true", token)).text();
+        fresh.push({ name:f.name, lastModified:Date.parse(f.modifiedTime)||Date.now(), text:text, driveId:f.id, driveModified:f.modifiedTime });
+      }
+      if(!fresh.length){ if(!silent) toast("新しいニュースはありません（"+state.dates.length+"日分を保存中）"); return; }
+      await addFiles(fresh);
+      toast("☁ "+fresh.length+"件のニュースファイルを読み込みました（計"+state.dates.length+"日分）");
+    }finally{
+      driveBusy=false; updateDriveUi(); renderDataInfo();
+    }
+  }
+  /* ☁ ボタン（ヘッダー・設定・最初の画面） */
+  async function driveButton(){
+    if(!driveSupported()){ toast("Googleドライブ連携はアプリ版（https のページ）でだけ使えます"); return; }
+    if(!driveConfigured()){ openSettings(); toast("Drive連携の設定を入力してください"); return; }
+    if(driveBusy) return;
+    try{
+      if(!driveTokenClient && !driveSavedToken()) await prepareDriveAuth();
+      var token=await requestDriveToken();
+      await syncFromDrive(token, false);
+    }catch(e){ showDriveError(e); }
+  }
+  /* 開いたとき・アプリに戻ったときの自動読込（ログインが有効なときだけ。切れていたら ☁ を押してもらう） */
+  function driveAuto(){
+    if(!driveSupported() || !driveConfigured() || driveBusy) return;
+    if(Date.now()-driveLastAuto<DRIVE_AUTO_INTERVAL) return;
+    var token=driveSavedToken();
+    if(!token){ prepareDriveAuth(); return; }
+    driveLastAuto=Date.now();
+    syncFromDrive(token, true).catch(function(){});
+  }
+  document.getElementById("driveQuickBtn").addEventListener("click", driveButton);
+  document.getElementById("driveLoadBtn").addEventListener("click", function(){ closeSettings(); driveButton(); });
+  document.getElementById("driveSave").addEventListener("click", function(){
+    rawSet(LS_APP+"driveClientId", document.getElementById("driveClientId").value.trim());
+    rawSet(LS_APP+"driveFolder", document.getElementById("driveFolder").value.trim());
+    driveTokenClient=null;
+    if(driveConfigured()){ document.getElementById("driveSettings").open=false; prepareDriveAuth(); toast("Drive連携の設定を保存しました。☁ で読み込めます"); }
+    else toast(driveFolderId(document.getElementById("driveFolder").value.trim()) ? "クライアントIDを入れてください" : "フォルダのURLを確認してください");
+    updateDriveUi(); render();
+  });
+  document.getElementById("driveSignOut").addEventListener("click", function(){
+    var t=driveSavedToken();
+    if(t && window.google && google.accounts && google.accounts.oauth2){ try{ google.accounts.oauth2.revoke(t, function(){}); }catch(e){} }
+    rawSet(LS_APP+"driveToken", ""); rawSet(LS_APP+"driveConsented", "");
+    updateDriveUi(); toast("Googleのログイン情報を消しました");
+  });
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") driveAuto(); });
+
+  render();
+  restore().then(function(){ updateDriveUi(); driveAuto(); prepareDriveAuth(); });
+
+  /* アプリとしてインストールできるように（https のときだけ） */
+  if("serviceWorker" in navigator && location.protocol==="https:"){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  }
+})();
+</script>
+</body>
+</html>
